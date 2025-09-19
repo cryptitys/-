@@ -12,7 +12,7 @@ CORS(app)
 
 # Configurações
 API_BASE_URL = "https://edusp-api.ip.tv"
-CLIENT_DOMAIN = "tarefaspchipss.netlify.app"
+CLIENT_DOMAIN = "https://trollchipsstarefas.vercel.app/"
 
 # Mapeamento de categorias de tarefas
 category_map = {
@@ -40,7 +40,7 @@ class AuthManager:
             'accept': '*/*',
             'accept-language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
             'content-type': 'application/json',
-            'origin': 'https://tarefaspchipss.netlify.app',
+            'origin': 'https://trollchipsstarefas.vercel.app/',
             'priority': 'u=0',
             'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
             'sec-ch-ua-mobile': '?0',
