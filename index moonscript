@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="utf-8"/>
+        <meta content="width=device-width, initial-scale=1" name="viewport"/>
+        <title>Moon Future - TAREFAS</title>
+        <meta name="description" content="Moon Future: Sua plataforma do Futuro para automação de estudos."/>
+        <meta name="author" content="Moon Scripts"/>
+        <link rel="icon" href="data:,">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet"/>
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --mf-gradient: linear-gradient(90deg, #ff416c, #ff4b2b);
+                --mf-accent-color: #ff416c;
+                --mf-error-color: #ef4444;
+                --mf-text-color: #b0b0b0;
+                --mf-text-color-light: #ffffff;
+                --mf-bg-dark: #000000;
+                --mf-bg-medium: #1a1a1a;
+                --mf-bg-light-hover: #2c2c2c;
+                --mf-border-subtle: rgba(255, 255, 255, 0.1);
+            }
+
+            * {
+                padding: 0;
+                margin: 0;
+                box-sizing: border-box;
+                font-family: "Poppins", sans-serif;
+            }
+
+            html, body {
+                height: 100%;
+                overflow: hidden;
+            }
+
+            body {
+                width: 100%;
+                background: var(--mf-bg-dark);
+                color: var(--mf-text-color);
+            }
+
+            #login-screen {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                height: 100%;
+                padding: 1rem;
+            }
+
+            .mf-wrapper {
+                width: 100%;
+                max-width: 380px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                transition: transform 0.2s ease-out;
+                /* Para suavizar o auto-ajuste */
+            }
+
+            .mf-logo-section {
+                display: flex;
+                align-items: center;
+                transform: translateX(-0.5rem);
+            }
+
+            .mf-logo-section .moon-icon {
+                font-size: 3rem;
+                transform: rotate(-30deg) translateY(-0.1rem);
+                background: var(--mf-gradient);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-size: 200% auto;
+                animation: gradientAnimation 5s ease infinite;
+                margin-right: 0.5rem;
+            }
+
+            .mf-logo-section .moon-text {
+                font-size: 3rem;
+                font-weight: 500;
+                background: var(--mf-gradient);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-size: 200% auto;
+                animation: gradientAnimation 5s ease infinite;
+                white-space: nowrap;
+            }
+
+            @keyframes gradientAnimation {
+                0% {
+                    background-position: 0% 50%;
+                }
+
+                50% {
+                    background-position: 100% 50%;
+                }
+
+                to {
+                    background-position: 0% 50%;
+                }
+            }
+
+            #mf-motto {
+                margin-top: 1.5rem;
+                margin-bottom: 2.5rem;
+                text-align: center;
+            }
+
+            #mf-motto p {
+                margin-bottom: 0.75rem;
+            }
+
+            #mf-motto span.only-tarefas {
+                font-size: 0.8rem;
+                font-weight: 700;
+                color: var(--mf-accent-color);
+                letter-spacing: 0.1em;
+                display: block;
+            }
+
+            .mf-form {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .mf-form-control {
+                width: 100%;
+            }
+
+            .mf-form-control label {
+                font-weight: 400;
+                font-size: 0.9rem;
+                margin-bottom: 0.25rem;
+                display: block;
+            }
+
+            .input-wrapper {
+                position: relative;
+                width: 100%;
+            }
+
+            .mf-toggle-btn {
+                position: absolute;
+                right: 0.5rem;
+                top: 50%;
+                transform: translateY(-50%);
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                color: var(--mf-text-color);
+            }
+
+            .mf-form-control input {
+                width: 100%;
+                padding: 0.75rem 1rem;
+                border-radius: 0.5rem;
+                outline: none;
+                background: transparent;
+                border: 1px solid var(--mf-border-subtle);
+                color: var(--mf-text-color-light);
+                font-size: 1rem;
+                transition: all 0.3s ease;
+            }
+
+            .mf-form-control input[type="password"] {
+                padding-right: 2.5rem;
+            }
+
+            .mf-form-control input:focus {
+                border-color: var(--mf-accent-color);
+                box-shadow: 0 0 8px rgba(255, 65, 108, 0.2);
+            }
+
+            .mf-form-control input.shake {
+                animation: shake 0.5s ease-in-out both;
+                border-color: var(--mf-accent-color);
+            }
+
+            @keyframes shake {
+                10%, 90% {
+                    transform: translateX(-1px);
+                }
+
+                20%, 80% {
+                    transform: translateX(2px);
+                }
+
+                30%, 50%, 70% {
+                    transform: translateX(-3px);
+                }
+
+                40%, 60% {
+                    transform: translateX(3px);
+                }
+            }
+
+            .mf-form-buttons {
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+                margin-top: 1.5rem;
+            }
+
+            .mf-form-buttons button {
+                width: 100%;
+                background: var(--mf-bg-medium);
+                border: 1px solid var(--mf-border-subtle);
+                padding: 0.75rem;
+                border-radius: 0.5rem;
+                color: var(--mf-text-color-light);
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 1rem;
+                transition: background-color 0.2s ease;
+            }
+
+            .mf-form-buttons button:hover:not(:disabled) {
+                background: var(--mf-bg-light-hover);
+            }
+
+            .mf-form-buttons button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .mf-footer-credits {
+                margin-top: 3rem;
+                width: 100%;
+                text-align: center;
+                border-top: 1px solid var(--mf-border-subtle);
+                padding-top: 1.5rem;
+            }
+
+            .footer-links {
+                display: flex;
+                justify-content: center;
+                gap: 1.5rem;
+                margin-bottom: 1rem;
+            }
+
+            .footer-links a {
+                text-decoration: none;
+                font-weight: 500;
+                font-size: 0.9rem;
+                transition: color 0.2s ease;
+                color: var(--mf-text-color);
+            }
+
+            .footer-links a:hover {
+                color: var(--mf-text-color-light);
+            }
+
+            .footer-links i {
+                margin-right: 0.4rem;
+            }
+
+            .copyright, .developed-by {
+                font-size: 0.75rem;
+                color: rgba(255, 255, 255, 0.5);
+                line-height: 1.5;
+            }
+
+            .developed-by {
+                font-size: 0.7rem;
+                color: rgba(255, 255, 255, 0.4);
+                margin-top: 0.5rem;
+                font-weight: 500;
+            }
+
+            .spinner {
+                display: inline-block;
+                width: 1.5em;
+                height: 1.5em;
+                border: 3px solid rgba(255,255,255,0.2);
+                border-top-color: #fff;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            .modal-overlay {
+                position: fixed;
+                inset: 0;
+                background-color: rgba(0, 0, 0, 0.8);
+                backdrop-filter: blur(5px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2000;
+                animation: fadeIn 0.3s ease;
+            }
+
+            .modal-box {
+                background-color: var(--mf-bg-medium);
+                border: 1px solid var(--mf-border-subtle);
+                border-radius: 0.75rem;
+                width: 95%;
+                max-width: 500px;
+                max-height: 90vh;
+                display: flex;
+                flex-direction: column;
+                animation: slideInUp 0.4s ease-out;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            }
+
+            .task-modal-box {
+                max-width: 700px;
+            }
+
+            .modal-header {
+                padding: 1rem 1.5rem;
+                border-bottom: 1px solid var(--mf-border-subtle);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-shrink: 0;
+            }
+
+            .modal-header h2 {
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: var(--mf-text-color-light);
+            }
+
+            .modal-header h2 .gradient-text {
+                background: var(--mf-gradient);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+
+            .modal-close-button {
+                background: none;
+                border: none;
+                color: #fff;
+                font-size: 1.5rem;
+                cursor: pointer;
+                opacity: 0.7;
+                transition: opacity 0.2s ease;
+            }
+
+            .modal-close-button:hover {
+                opacity: 1;
+            }
+
+            .modal-body {
+                padding: 1.5rem;
+                overflow-y: auto;
+                text-align: left;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                }
+
+                to {
+                    opacity: 1;
+                }
+            }
+
+            @keyframes slideInUp {
+                from {
+                    transform: translateY(20px);
+                    opacity: 0;
+                }
+
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+
+            .toast-container {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 5000;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .toast-style {
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                width: auto;
+                max-width: 350px;
+                padding: 1rem 1.5rem;
+                border-radius: 0.5rem;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                background-color: var(--mf-bg-medium);
+                border: 1px solid var(--mf-border-subtle);
+                border-left: 4px solid var(--mf-accent-color);
+                color: var(--mf-text-color-light);
+                animation: toast-in 0.5s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+                overflow: hidden;
+            }
+
+            .toast-style.success {
+                border-left-color: #22c55e;
+            }
+
+            .toast-style.error {
+                border-left-color: #ef4444;
+            }
+
+            @keyframes toast-in {
+                from {
+                    transform: translateX(calc(100% + 20px));
+                }
+
+                to {
+                    transform: translateX(0);
+                }
+            }
+
+            @keyframes toast-out {
+                to {
+                    opacity: 0;
+                    transform: translateX(calc(100% + 20px));
+                }
+            }
+
+            .toast-progress-bar {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                height: 3px;
+                background: var(--mf-gradient);
+                animation: shrink-progress linear forwards;
+            }
+
+            @keyframes shrink-progress {
+                from {
+                    width: 100%;
+                }
+
+                to {
+                    width: 0%;
+                }
+            }
+
+            .accounts-list {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+                text-align: left;
+                min-height: 250px;
+            }
+
+            .account-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: var(--mf-bg-dark);
+                padding: 0.75rem 1rem;
+                border-radius: 0.5rem;
+                border: 1px solid var(--mf-border-subtle);
+            }
+
+            .account-item .actions button {
+                background: none;
+                border: 1px solid var(--mf-border-subtle);
+                color: var(--mf-text-color);
+                padding: 0.4rem 0.8rem;
+                border-radius: 0.3rem;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-size: 0.8rem;
+            }
+
+            .account-item .actions button i {
+                margin-right: 0.5rem;
+            }
+
+            .account-item .actions .use-btn:hover {
+                color: #22c55e;
+                border-color: #22c55e;
+            }
+
+            .account-item .actions .remove-btn:hover {
+                color: var(--mf-error-color);
+                border-color: var(--mf-error-color);
+            }
+
+            .pagination-controls {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid var(--mf-border-subtle);
+            }
+
+            .pagination-controls button {
+                background: var(--mf-bg-dark);
+                border: 1px solid var(--mf-border-subtle);
+                color: var(--mf-text-color-light);
+                padding: 0.5rem 1rem;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+
+            .pagination-controls button:disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+
+            .action-button {
+                width: 100%;
+                background: var(--mf-gradient);
+                background-size: 200% auto;
+                border: none;
+                padding: 0.75rem;
+                border-radius: 0.5rem;
+                color: var(--mf-text-color-light);
+                font-weight: 600;
+                cursor: pointer;
+                transition: transform 0.2s ease;
+            }
+
+            .action-button:hover:not(:disabled) {
+                transform: scale(1.02);
+            }
+
+            .task-list-container {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+                max-height: 35vh;
+                overflow-y: auto;
+                padding-right: 10px;
+                margin: 1rem 0;
+            }
+
+            .task-item-label {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                padding: 0.75rem;
+                border-radius: 0.25rem;
+                background: var(--mf-bg-dark);
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+                border-left: 4px solid #555;
+            }
+
+            .task-item-label:hover {
+                background: var(--mf-bg-light-hover);
+            }
+
+            .task-item-label.Pendente {
+                border-left-color: #3b82f6;
+            }
+
+            .task-item-label.Rascunho {
+                border-left-color: #f59e0b;
+            }
+
+            .task-item-label.Expirada, .task-item-label.RascunhoExpirado {
+                border-left-color: #ef4444;
+            }
+
+            .task-checkbox {
+                height: 1.1rem;
+                width: 1.1rem;
+                flex-shrink: 0;
+                accent-color: var(--mf-accent-color);
+            }
+
+            .task-title {
+                flex-grow: 1;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                overflow: hidden;
+            }
+
+            .task-status {
+                font-size: 0.8rem;
+                font-weight: 500;
+                text-align: center;
+                width: 100px;
+                flex-shrink: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="login-screen" class="mf-container">
+            <main class="mf-wrapper">
+                <h2 class="mf-logo-section">
+                    <i class="far fa-moon moon-icon"></i>
+                    <span class="moon-text">Moon Future</span>
+                </h2>
+                <div id="mf-motto">
+                    <p>Sua plataforma do Futuro.</p>
+                    <span class="only-tarefas">ONLY TAREFAS SP</span>
+                </div>
+                <form id="login-form" class="mf-form" novalidate>
+                    <div class="mf-form-control">
+                        <label for="ra">Usuário:</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="ra" name="ra" placeholder="Ex. 123456789xsp" autocomplete="username"/>
+                        </div>
+                    </div>
+                    <div class="mf-form-control">
+                        <label for="password">Senha:</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="password" name="password" placeholder="Sua senha de acesso" autocomplete="current-password"/>
+                            <button type="button" class="mf-toggle-btn" id="togglePassword">
+                                <i class="fas fa-eye toggle-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mf-form-buttons">
+                        <button type="submit" id="login-button">
+                            <span id="login-text">Entrar</span>
+                        </button>
+                        <button type="button" id="manage-accounts-button">Gerenciar Contas</button>
+                    </div>
+                </form>
+                <footer class="mf-footer-credits">
+                    <div class="footer-links">
+                        <a href="https://discord.gg/kmeuwvXTNH" target="_blank">
+                            <i class="fab fa-discord"></i>
+                            Discord
+                        </a>
+                        <a href="https://pixgg.com/hackermoon" target="_blank">
+                            <i class="fas fa-heart"></i>
+                            Doações
+                        </a>
+                        <a href="termos.txt" id="info-link" target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-info-circle"></i>
+                            Info
+                        </a>
+                    </div>
+                    <p class="copyright">Moon Scripts © 2025. Todos os Direitos Reservados.</p>
+                    <p class="developed-by">Developed by Moon Scripts™</p>
+                </footer>
+            </main>
+        </div>
+        <div id="modal-container"></div>
+        <div id="toast-container" class="toast-container"></div>
+        <script src="script.js"></script>
+        <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"687c29d3bd0e49a7ac31e660289d8d92","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+    </body>
+</html>
