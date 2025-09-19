@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Sala do Futuro</title>
+    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold text-center mb-8">Auto Sala do Futuro</h1>
+        
+        <div id="loginSection" class="max-w-md mx-auto">
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">Login Automático</h2>
+                <input type="text" id="raInput" placeholder="Seu RA" class="w-full p-3 mb-3 bg-gray-700 rounded">
+                <input type="password" id="passwordInput" placeholder="Sua senha" class="w-full p-3 mb-4 bg-gray-700 rounded">
+                <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded">
+                    Entrar e Automatizar
+                </button>
+            </div>
+        </div>
+
+        <div id="dashboardSection" class="hidden">
+            <!-- Dashboard com tarefas -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+  </html>
