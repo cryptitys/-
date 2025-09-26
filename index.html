@@ -1177,1150 +1177,899 @@
     <div class="overlay" id="sidebarOverlay"></div>
 
     <script>
-        const PYTHON_SERVER_URL = 'https://trollchipsstarefas.onrender.com'; // URL da API para autenticação
-
-        // Mapeamento de categorias de tarefas
-        const categoryMap = {
-            1: 'Língua Portuguesa',
-            5: 'Geografia',
-            6: 'História',
-            7: 'Sociologia',
-            8: 'Biologia',
-            9: 'Física',
-            10: 'Matemática',
-            11: 'Química',
-            13: 'Língua Estrangeira Moderna - Inglês',
-            17: 'Ciências',
-            11621:'Educação Financeira',
-            5978: 'Filosofia',
-            14332: 'Educação Financeira',
-            156886: 'Multidisciplinar',
-            459708: '90 dias SAEB - Matemática',
-            459709: '90 dias SAEB - Língua Portuguesa',
-        };
-
-        // Variáveis globais para armazenar dados da sessão após o login
-        let globalAuthToken = null;
-        let globalNick = null; // Adicionado para armazenar o nick do usuário
-        let globalExternalId = null; // Adicionado para armazenar o external_id do usuário
-        let globalMoodleSessionCookie = null; // Não usado nesta versão, mas mantido para consistência
-        let globalSesskey = null; // Não usado nesta versão, mas mantido para consistência
-        let globalProcessId = null; // Para rastrear processos em segundo plano, se houver
-        const processingTasks = new Set(); // NOVO: Para rastrear tarefas em processamento
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const mainSection = document.getElementById('mainSection');
-            const particleContainer = document.getElementById('particle-container');
-            const numberOfParticles = 35;
-            const loadingOverlay = document.getElementById('loadingOverlay'); // Overlay de carregamento dentro do app
-            const loadingTitle = loadingOverlay.querySelector('.loading-title'); // Novo: Título do overlay
-            const loadingMessage = loadingOverlay.querySelector('.loading-message'); // Novo: Mensagem do overlay
-            const notificationContainer = document.getElementById('notificationContainer'); // NOVO: Container de notificações
-
-            // Elementos da UI do tarefas.php
-            const tasksContent = document.getElementById('tasksContent');
-            const noTasks = document.getElementById('noTasks');
-
-            // Elementos de filtro do tarefas.php
-            const toDoButton = document.getElementById('toDoButton');
-            const statusFilterDropdown = document.getElementById('statusFilterDropdown');
-            const filterToDo = document.getElementById('filterToDo');
-            const filterDelivered = document.getElementById('filterDelivered');
-            const filterExpired = document.getElementById('filterExpired');
-            const processAllTasksButton = document.getElementById('processAllTasksButton'); // NOVO: Botão Processar todas as tarefas
-
-            // Elementos do Modal de Tarefas Entregues do tarefas.php
-            const deliveredTaskModal = document.getElementById('deliveredTaskModal');
-            const modalSubjectTitle = document.getElementById('modalSubjectTitle');
-            const modalTaskTitle = document.getElementById('modalTaskTitle');
-            const modalTaskScore = document.getElementById('modalTaskScore');
-            const modalTaskId = document.getElementById('modalTaskId');
-            const closeDeliveredTaskModal = document.getElementById('closeDeliveredTaskModal');
-            const viewResponseButton = document.getElementById('viewResponseButton');
-
-            // Elementos do NOVO Modal de Processamento de Tarefa (Individual)
-            const taskProcessingModal = document.getElementById('taskProcessingModal');
-            const processingModalTitle = document.getElementById('processingModalTitle');
-            const modalProcessingSubject = document.getElementById('modalProcessingSubject');
-            const modalProcessingStatus = document.getElementById('modalProcessingStatus');
-            const modalProcessingTitle = document.getElementById('modalProcessingTitle');
-            const modalProcessingDescription = document.getElementById('modalProcessingDescription');
-            const modalProcessingTaskId = document.getElementById('modalProcessingTaskId');
-            const modalProcessingFirstAccess = document.getElementById('modalProcessingFirstAccess');
-
-            const minTimeInput = document.getElementById('minTime');
-            const maxTimeInput = document.getElementById('maxTime');
-            const saveDraftButton = document.getElementById('saveDraftButton');
-            const doTaskButton = document.getElementById('doTaskButton');
-
-            // Elementos do NOVO Modal de Processamento em Lote
-            const batchProcessingModal = document.getElementById('batchProcessingModal');
-            const batchMinTimeInput = document.getElementById('batchMinTime');
-            const batchMaxTimeInput = document.getElementById('batchMaxTime');
-            const batchTasksList = document.getElementById('batchTasksList');
-            const closeBatchProcessingModalButton = document.getElementById('closeBatchProcessingModal');
-            const processSelectedTasksButton = document.getElementById('processSelectedTasksButton');
-            
-            // MODIFICAÇÃO: Botões de seleção em lote
-            const batchSelectAll = document.getElementById('batchSelectAll');
-            const batchSelectAllDraft = document.getElementById('batchSelectAllDraft');
-            const batchDeselectAll = document.getElementById('batchDeselectAll');
-
-
-            // Elementos do NOVO Modal de Respostas
-            const answersModal = document.getElementById('answersModal');
-            const answersContent = document.getElementById('answersContent');
-            const closeAnswersModal = document.getElementById('closeAnswersModal');
-
-
-            // Elementos do Modal de Login do expansao.php
-            const loginModal = document.getElementById('loginModal');
-            const authForm = document.getElementById('authForm');
-            const togglePasswordLogin = document.getElementById('togglePasswordLogin');
-            const preloader = document.getElementById("preloader"); // Carregador inicial da página
-
-            // --- Partículas de Fundo (do expansao.php) ---
-            for (let i = 0; i < numberOfParticles; i++) {
-                let particle = document.createElement('div');
-                particle.className = 'particle';
-                particleContainer.appendChild(particle);
-                particle.style.left = `${Math.random() * 100}%`;
-                particle.style.width = `${Math.random() * 3 + 2}px`;
-                particle.style.height = particle.style.width;
-                particle.style.animationDelay = `${Math.random() * 10}s`;
-                particle.style.animationDuration = `${Math.random() * 10 + 15}s`;
-            }
-
-            // --- Preloader (do expansao.php) ---
-            setTimeout(() => {
-                preloader.style.opacity = "0";
-                setTimeout(() => {
-                    preloader.style.display = "none";
-                }, 600);
-            }, 500);
-
-            // --- Funções Auxiliares ---
-            async function callBackendEndpoint(endpoint, payload, baseUrl = PYTHON_SERVER_URL ) {
-                try {
-                    const response = await fetch(`${baseUrl}/${endpoint}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(payload),
-                    });
-                    
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        
-                        // CORREÇÃO: Para erros 401, retorna mensagem mais específica
-                        if (response.status === 401) {
-                            throw new Error('Credenciais inválidas');
-                        }
-                        
-                        throw new Error(errorData.message || `Erro na requisição para ${endpoint}`);
-                    }
-                    return await response.json();
-                } catch (error) {
-                    console.error(`Erro ao chamar o endpoint ${endpoint}:`, error);
-                    return { success: false, message: error.message };
+       // Configuração e inicialização das partículas
+    document.addEventListener('DOMContentLoaded', function() {
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: "#ffffff" },
+                shape: {
+                    type: "circle",
+                    stroke: { width: 0, color: "#000000" },
+                    polygon: { nb_sides: 5 }
+                },
+                opacity: {
+                    value: 0.5,
+                    random: true,
+                    anim: { enable: true, speed: 1, opacity_min: 0.1, sync: false }
+                },
+                size: {
+                    value: 3,
+                    random: true,
+                    anim: { enable: true, speed: 2, size_min: 0.1, sync: false }
+                },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: "#ffffff",
+                    opacity: 0.4,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 1,
+                    direction: "none",
+                    random: true,
+                    straight: false,
+                    out_mode: "out",
+                    bounce: false,
+                    attract: { enable: false, rotateX: 600, rotateY: 1200 }
                 }
-            }
-            // Helper para formatar datas
-            function formatDate(dateString) {
-                if (!dateString) return 'N/A';
-                const date = new Date(dateString);
-                return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            }
-
-            // Helper para formatar data e hora
-            function formatDateTime(dateString) {
-                if (!dateString) return 'N/A';
-                const date = new Date(dateString);
-                return date.toLocaleString('pt-BR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                });
-            }
-
-            // Abre o modal de tarefa entregue
-            function openDeliveredTaskModal(task) {
-                const primaryCategoryId = task.task_category_ids && task.task_category_ids.length > 0
-                                        ? task.task_category_ids[0]
-                                        : null;
-                const subjectName = primaryCategoryId ? categoryMap[primaryCategoryId] || `Componente ${primaryCategoryId}` : 'Componente Indefinido';
-                const taskTitle = task.task_title || 'Título Indisponível';
-                const taskScore = task.result_score !== undefined && task.result_score !== null ? task.result_score : 'N/A';
-                const taskId = task.task_id || 'N/A';
-
-                modalSubjectTitle.textContent = `${subjectName} Concluída`;
-                modalTaskTitle.textContent = taskTitle;
-                modalTaskScore.textContent = taskScore;
-                modalTaskId.textContent = taskId;
-
-                // Armazena o ID da tarefa no botão "Visualizar Resposta" para uso posterior
-                viewResponseButton.dataset.taskId = taskId;
-
-                deliveredTaskModal.classList.add('open');
-            }
-
-            // Fecha o modal de tarefa entregue
-            function closeDeliveredTaskModalHandler() {
-                deliveredTaskModal.classList.remove('open');
-            }
-
-            // Abre o modal de processamento de tarefa (Individual)
-            function openTaskProcessingModal(task) {
-                const primaryCategoryId = task.category_ids && task.category_ids.length > 0
-                                        ? task.category_ids[0]
-                                        : null;
-                const subjectName = primaryCategoryId ? categoryMap[primaryCategoryId] || `Componente ${primaryCategoryId}` : 'Componente Indefinido';
-                const taskTitle = task.title || 'Título Indisponível';
-                const taskDescription = task.description || 'Nenhuma descrição disponível.';
-                const taskIdDisplay = task.id || 'N/A';
-                const firstAccessDate = task.apply_moment_first_apply_at || task.accessed_on;
-
-                let statusText = 'Pendente';
-                if (processingTasks.has(taskIdDisplay)) {
-                    statusText = 'Sendo Processado';
-                } else if (task.answer_status === 'draft') {
-                    statusText = 'Rascunho';
-                } else {
-                    statusText = 'A fazer';
+            },
+            interactivity: {
+                detect_on: "canvas",
+                events: {
+                    onhover: { enable: true, mode: "grab" },
+                    onclick: { enable: true, mode: "push" },
+                    resize: true
+                },
+                modes: {
+                    grab: { distance: 140, line_linked: { opacity: 1 } },
+                    push: { particles_nb: 4 }
                 }
-
-                processingModalTitle.textContent = `Processando Tarefa: ${taskTitle}`;
-                modalProcessingSubject.textContent = subjectName;
-                modalProcessingStatus.textContent = statusText;
-                modalProcessingTitle.textContent = taskTitle;
-                modalProcessingDescription.textContent = taskDescription;
-                modalProcessingTaskId.textContent = taskIdDisplay;
-                modalProcessingFirstAccess.textContent = formatDateTime(firstAccessDate);
-
-                minTimeInput.value = ''; // Limpa os campos
-                maxTimeInput.value = '';
-                taskProcessingModal.dataset.taskId = taskIdDisplay; // Armazena o ID da tarefa
-                taskProcessingModal.dataset.roomNameForApply = task.room_name_for_apply || ''; // Armazena o room_name_for_apply
-                taskProcessingModal.dataset.answerId = (task.answer_status === 'draft' && task.answer_id !== null) ? task.answer_id : ''; // Armazena o answer_id
-                taskProcessingModal.classList.add('open');
-            }
-
-            // Fecha o modal de processamento de tarefa (Individual)
-            function closeTaskProcessingModalHandler() {
-                taskProcessingModal.classList.remove('open');
-            }
-
-            // NOVO: Função para exibir notificações
-            function showNotification(message, type = 'info', duration = 3000) {
-                const notificationItem = document.createElement('div');
-                notificationItem.className = `notification-item ${type}`;
-                let iconHtml = '';
-                if (type === 'info') {
-                    iconHtml = '<i class="fas fa-info-circle icon" style="color: var(--primary-light);"></i>';
-                } else if (type === 'warning') {
-                    iconHtml = '<i class="fas fa-exclamation-triangle icon" style="color: var(--warning);"></i>';
-                } else if (type === 'success') {
-                    iconHtml = '<i class="fas fa-check-circle icon" style="color: var(--success);"></i>';
-                } else if (type === 'error') {
-                    iconHtml = '<i class="fas fa-times-circle icon" style="color: var(--error);"></i>';
-                }
-
-                notificationItem.innerHTML = `${iconHtml}<span class="message">${message}</span>`;
-                notificationContainer.appendChild(notificationItem);
-
-                // Força o reflow para garantir a transição
-                void notificationItem.offsetWidth;
-                notificationItem.classList.add('show');
-
-                setTimeout(() => {
-                    notificationItem.classList.remove('show');
-                    notificationItem.classList.add('hide');
-                    notificationItem.addEventListener('transitionend', () => {
-                        notificationItem.remove();
-                    }, { once: true });
-                }, duration);
-            }
-
-            // NOVO: Função refatorada para lidar com o processamento de tarefas (individual)
-            async function handleIndividualTaskProcessing(isDraft = false) {
-                const taskId = taskProcessingModal.dataset.taskId;
-                const roomNameForApply = taskProcessingModal.dataset.roomNameForApply;
-                const answerId = taskProcessingModal.dataset.answerId;
-                const minTime = minTimeInput.value;
-                const maxTime = maxTimeInput.value;
-                const taskName = modalProcessingTitle.textContent.replace('Processando Tarefa: ', '');
-
-                // VERIFICAÇÃO DE SEGURANÇA
-                if (processingTasks.has(taskId)) {
-                    showNotification(`A tarefa "${taskName}" já está sendo processada.`, 'warning');
-                    return;
-                }
-
-                closeTaskProcessingModalHandler();
-                processingTasks.add(taskId); // Adiciona ao set para bloquear novas requisições
-                renderTasks(JSON.parse(sessionStorage.getItem('currentTasks') || '[]'), sessionStorage.getItem('currentFilter')); // Re-renderiza para mostrar o status
-
-                const actionText = isDraft ? 'salva como rascunho' : 'enviada';
-                const processingActionText = isDraft ? 'salvando como rascunho' : 'processada';
-
-                showNotification(`Tarefa "${taskName}" está sendo ${processingActionText}.`, 'info');
-                showNotification(`A tarefa "${taskName}" irá demorar de ${minTime || 'N/A'} a ${maxTime || 'N/A'} minutos.`, 'warning', 5000);
-
-                try {
-                    const payload = {
-                        auth_token: globalAuthToken,
-                        room_name_for_apply: roomNameForApply || null,
-                        time_min: minTime,
-                        time_max: maxTime,
-                        tasks: [{
-                            task_id: taskId,
-                            answer_id: answerId || null,
-                            salvar_rascunho: isDraft.toString()
-                        }]
-                    };
-
-                    const response = await callBackendEndpoint('fazer_task', payload);
-
-                    if (response.success) {
-                        showNotification(`Tarefa "${taskName}" ${actionText} com sucesso!`, 'success');
-                    } else {
-                        showNotification(`Erro ao processar tarefa "${taskName}": ${response.message || 'Erro desconhecido.'}`, 'error');
-                    }
-                } catch (error) {
-                    console.error(`Erro ao processar tarefa (rascunho: ${isDraft}):`, error);
-                    showNotification(`Erro ao processar tarefa "${taskName}": ${error.message}`, 'error');
-                } finally {
-                    processingTasks.delete(taskId); // Libera o bloqueio da tarefa
-                    applyFilter(sessionStorage.getItem('currentFilter') || 'todo'); // Recarrega as tarefas para refletir a mudança final
-                }
-            }
-
-            doTaskButton.addEventListener('click', () => handleIndividualTaskProcessing(false));
-            saveDraftButton.addEventListener('click', () => handleIndividualTaskProcessing(true));
-
-            // NOVO: Abre o modal de processamento em lote
-            processAllTasksButton.addEventListener('click', async () => {
-                showLoadingOverlay("Carregando Tarefas...", "Buscando tarefas pendentes e expiradas para processamento em lote.");
-                try {
-                    const userDataString = sessionStorage.getItem('userData');
-                    if (!userDataString) {
-                        showCustomMessage("Sessão expirada ou dados de usuário ausentes. Por favor, faça login novamente.", () => {
-                            window.location.href = 'login-alunos';
-                        });
-                        return;
-                    }
-                    const userData = JSON.parse(userDataString);
-                    const { nick, auth_token } = userData.user_info;
-
-                    // Buscar tarefas pendentes e expiradas simultaneamente
-                    const [pendingTasksResponse, expiredTasksResponse] = await Promise.all([
-                        callBackendEndpoint('tasks/pending', { auth_token, nick }),
-                        callBackendEndpoint('tasks/expired', { auth_token, nick })
-                    ]);
-
-                    batchTasksList.innerHTML = ''; // Limpa a lista anterior
-
-                    let allTasks = [];
-
-                    // Processar tarefas pendentes
-                    if (pendingTasksResponse.success && pendingTasksResponse.tasks && Array.isArray(pendingTasksResponse.tasks)) {
-                        allTasks = [...allTasks, ...pendingTasksResponse.tasks.map(task => ({ ...task, taskType: 'pending' }))];
-                    }
-
-                    // Processar tarefas expiradas
-                    if (expiredTasksResponse.success && expiredTasksResponse.tasks && Array.isArray(expiredTasksResponse.tasks)) {
-                        allTasks = [...allTasks, ...expiredTasksResponse.tasks.map(task => ({ ...task, taskType: 'expired' }))];
-                    }
-
-                    if (allTasks.length > 0) {
-                        // Ordenar por tipo (pendentes primeiro) e depois por título
-                        allTasks.sort((a, b) => {
-                            if (a.taskType !== b.taskType) {
-                                return a.taskType === 'pending' ? -1 : 1;
-                            }
-                            return (a.title || '').localeCompare(b.title || '');
-                        });
-
-                        // Adicionar seção de estatísticas no topo da lista
-                        const statsDiv = document.createElement('div');
-                        statsDiv.className = 'batch-stats';
-                        const pendingCount = allTasks.filter(t => t.taskType === 'pending').length;
-                        const expiredCount = allTasks.filter(t => t.taskType === 'expired').length;
-                        const draftCount = allTasks.filter(t => t.answer_status === 'draft').length;
-                        
-                        statsDiv.innerHTML = `
-                            <p class="stats-text">
-                                <strong>Total: ${allTasks.length} tarefas</strong> | 
-                                Pendentes: ${pendingCount} | 
-                                Expiradas: ${expiredCount} | 
-                                Rascunhos: ${draftCount}
-                            </p>
-                        `;
-                        batchTasksList.appendChild(statsDiv); // Adiciona antes dos itens
-
-                        allTasks.forEach(task => {
-                            const taskItem = document.createElement('div');
-                            taskItem.className = 'batch-task-item';
-                            taskItem.dataset.taskId = task.id;
-                            taskItem.dataset.answerId = (task.answer_status === 'draft' && task.answer_id !== null) ? task.answer_id : '';
-                            taskItem.dataset.roomNameForApply = task.room_name_for_apply || '';
-                            taskItem.dataset.taskType = task.taskType;
-
-                            const isCurrentlyProcessing = processingTasks.has(task.id);
-
-                            // Determinar o status visual
-                            let statusBadge = '';
-                            let statusClass = '';
-                            if (task.taskType === 'expired') {
-                                statusBadge = '<span class="status-badge expired">Expirada</span>';
-                                statusClass = 'expired-task';
-                            } else if (task.answer_status === 'draft') {
-                                statusBadge = '<span class="status-badge draft">Rascunho</span>';
-                                statusClass = 'draft-task';
-                            } else {
-                                statusBadge = '<span class="status-badge pending">Pendente</span>';
-                                statusClass = 'pending-task';
-                            }
-
-                            if (isCurrentlyProcessing) {
-                                statusBadge = '<span class="status-badge processing">Processando...</span>';
-                                statusClass += ' processing-task';
-                            }
-
-                            taskItem.innerHTML = `
-                                <div class="task-item-content ${statusClass}">
-                                    <input type="checkbox" class="task-select-checkbox" ${isCurrentlyProcessing ? 'disabled' : ''}>
-                                    <div class="task-info">
-                                        <span class="task-name">${task.title || 'Título Indisponível'}</span>
-                                        ${statusBadge}
-                                    </div>
-                                    <label class="draft-option">
-                                        <input type="checkbox" class="save-draft-checkbox" ${task.answer_status === 'draft' ? 'checked' : ''} ${isCurrentlyProcessing ? 'disabled' : ''}> 
-                                        Salvar como rascunho
-                                    </label>
-                                </div>
-                            `;
-                            batchTasksList.appendChild(taskItem);
-                        });
-                        
-                    } else {
-                        batchTasksList.innerHTML = '<p class="text-gray-500 text-center">Nenhuma tarefa pendente ou expirada encontrada.</p>';
-                    }
-                    
-                    batchProcessingModal.classList.add('open');
-                } catch (error) {
-                    console.error("Erro ao carregar tarefas para processamento em lote:", error);
-                    showCustomMessage(`Erro ao carregar tarefas: ${error.message}`);
-                } finally {
-                    hideLoadingOverlay();
-                }
-            });
-
-            // NOVO: Handler para o botão "Selecionar Todas" no modal de lote
-            batchSelectAll.addEventListener('click', () => {
-                const checkboxes = batchTasksList.querySelectorAll('.task-select-checkbox');
-                checkboxes.forEach(checkbox => {
-                    if (!checkbox.disabled) {
-                        checkbox.checked = true;
-                    }
-                });
-            });
-
-            // NOVO: Handler para o botão "Todas como Rascunho" no modal de lote
-            batchSelectAllDraft.addEventListener('click', () => {
-                const taskItems = batchTasksList.querySelectorAll('.batch-task-item');
-                taskItems.forEach(item => {
-                    const selectCheckbox = item.querySelector('.task-select-checkbox');
-                    const draftCheckbox = item.querySelector('.save-draft-checkbox');
-                    if (!selectCheckbox.disabled && !draftCheckbox.disabled) {
-                        selectCheckbox.checked = true;
-                        draftCheckbox.checked = true;
-                    }
-                });
-            });
-
-            // NOVO: Handler para o botão "Limpar Seleção" no modal de lote
-            batchDeselectAll.addEventListener('click', () => {
-                const checkboxes = batchTasksList.querySelectorAll('.task-select-checkbox');
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                });
-                const draftCheckboxes = batchTasksList.querySelectorAll('.save-draft-checkbox');
-                draftCheckboxes.forEach(checkbox => {
-                    checkbox.checked = false;
-                });
-            });
-
-            // NOVO: Handler para o botão "Processar Tarefas Selecionadas" no modal de lote
-            processSelectedTasksButton.addEventListener('click', async () => {
-                const tasksToProcess = [];
-                const taskItems = batchTasksList.querySelectorAll('.batch-task-item');
-                const globalMinTime = batchMinTimeInput.value;
-                const globalMaxTime = batchMaxTimeInput.value;
-
-                let roomNameForApplyBatch = null;
-
-                taskItems.forEach(item => {
-                    const checkbox = item.querySelector('.task-select-checkbox');
-                    if (checkbox.checked && !checkbox.disabled) {
-                        const taskId = item.dataset.taskId;
-                        // VERIFICAÇÃO DE SEGURANÇA (redundante, mas bom ter)
-                        if (processingTasks.has(taskId)) {
-                            const taskName = item.querySelector('.task-name').textContent;
-                            showNotification(`Tarefa "${taskName}" já está em processamento e foi ignorada.`, 'warning');
-                            return; // Pula para a próxima iteração
-                        }
-
-                        if (!roomNameForApplyBatch) {
-                            roomNameForApplyBatch = item.dataset.roomNameForApply || null;
-                        }
-
-                        const answerId = item.dataset.answerId;
-                        const salvarRascunho = item.querySelector('.save-draft-checkbox').checked ? 'true' : 'false';
-
-                        tasksToProcess.push({
-                            task_id: taskId,
-                            answer_id: answerId || null,
-                            salvar_rascunho: salvarRascunho
-                        });
-                    }
-                });
-
-                if (tasksToProcess.length === 0) {
-                    showNotification("Nenhuma tarefa válida selecionada para processar.", 'info');
-                    return;
-                }
-
-                batchProcessingModal.classList.remove('open'); // Fecha o modal de lote
-
-                const taskIdsToProcess = tasksToProcess.map(t => t.task_id);
-                taskIdsToProcess.forEach(id => processingTasks.add(id)); // Adiciona todos ao set de bloqueio
-                renderTasks(JSON.parse(sessionStorage.getItem('currentTasks') || '[]'), sessionStorage.getItem('currentFilter')); // Re-renderiza a lista principal
-
-                showNotification(`Processando ${tasksToProcess.length} tarefa(s) em lote.`, 'info');
-                showNotification(`As tarefas irão demorar de ${globalMinTime || 'N/A'} a ${globalMaxTime || 'N/A'} minutos.`, 'warning', 5000);
-
-                try {
-                    const payload = {
-                        auth_token: globalAuthToken,
-                        room_name_for_apply: roomNameForApplyBatch,
-                        time_min: globalMinTime,
-                        time_max: globalMaxTime,
-                        tasks: tasksToProcess
-                    };
-
-                    const response = await callBackendEndpoint('fazer_task', payload);
-
-                    if (response.success) {
-                        showNotification(`Tarefas em lote processadas com sucesso!`, 'success');
-                    } else {
-                        showNotification(`Erro ao processar tarefas em lote: ${response.message || 'Erro desconhecido.'}`, 'error');
-                    }
-                } catch (error) {
-                    console.error("Erro ao processar tarefas em lote:", error);
-                    showNotification(`Erro ao processar tarefas em lote: ${error.message}`, 'error');
-                } finally {
-                    taskIdsToProcess.forEach(id => processingTasks.delete(id)); // Remove todos do set de bloqueio
-                    applyFilter(sessionStorage.getItem('currentFilter') || 'todo'); // Recarrega as tarefas para refletir as mudanças finais
-                }
-            });
-
-
-            // Abre o modal de respostas e exibe as respostas
-            async function showTaskAnswers(taskId) {
-                showLoadingOverlay("Carregando Respostas...", "Buscando as respostas da tarefa.");
-                deliveredTaskModal.classList.remove('open'); // Fecha o modal de entregues se estiver aberto
-
-                try {
-                    const userDataString = sessionStorage.getItem('userData');
-                    if (!userDataString) {
-                        console.error("Dados do usuário não encontrados na sessão.");
-                        // Usando um modal customizado em vez de alert
-                        showCustomMessage("Sessão expirada ou dados de usuário ausentes. Por favor, faça login novamente.", () => {
-                            window.location.href = 'login-alunos';
-                        });
-                        return;
-                    }
-                    const userData = JSON.parse(userDataString);
-                    const { auth_token } = userData.user_info;
-
-                    const response = await callBackendEndpoint('fazer_task', {
-                        action: 'mostrar_respostas',
-                        task_id: taskId,
-                        auth_token: auth_token // Passa o token do aluno
-                    });
-
-                    if (response.success && response.answers) {
-                        answersContent.innerHTML = ''; // Limpa o conteúdo anterior
-
-                        const answers = response.answers;
-                        if (Object.keys(answers).length === 0) {
-                            answersContent.innerHTML = '<p class="text-gray-400">Nenhuma resposta encontrada para esta tarefa.</p>';
-                        } else {
-                            for (const questionId in answers) {
-                                const answerData = answers[questionId];
-                                const questionBlock = document.createElement('div');
-                                questionBlock.className = 'question-block';
-
-                                let answerHtml = '';
-                                if (answerData.question_type === 'multiple_choice' || answerData.question_type === 'single' || answerData.question_type === 'multi' || answerData.question_type === 'true-false') {
-                                    // Para questões de múltipla escolha/verdadeiro-falso, mostra as opções corretas
-                                    const correctOptions = Object.entries(answerData.answer)
-                                        .filter(([, isCorrect]) => isCorrect)
-                                        .map(([index]) => `Opção ${parseInt(index) + 1}`) // Ajusta para 1-based index
-                                        .join(', ');
-                                    answerHtml = `<p class="correct-answer"><strong>Resposta Correta:</strong> ${correctOptions || 'N/A'}</p>`;
-                                } else if (answerData.question_type === 'fill-words' && Array.isArray(answerData.answer)) {
-                                    // Para fill-words, exibe as palavras extraídas
-                                    answerHtml = `<p class="correct-answer"><strong>Palavras Corretas:</strong> ${answerData.answer.join(', ')}</p>`;
-                                } else if (answerData.question_type === 'essay' || answerData.question_type === 'text_ai' || answerData.question_type === 'fill-letters') {
-                                    // Para redação/texto AI/fill-letters, exibe o texto
-                                    answerHtml = `<p class="correct-answer"><strong>Resposta Correta:</strong> ${answerData.answer['0'] || 'N/A'}</p>`;
-                                } else {
-                                    answerHtml = `<p class="correct-answer"><strong>Resposta:</strong> ${JSON.stringify(answerData.answer)}</p>`;
-                                }
-
-                                questionBlock.innerHTML = `
-                                    <h4>Questão ID: ${answerData.question_id} (Tipo: ${answerData.question_type})</h4>
-                                    ${answerHtml}
-                                `;
-                                answersContent.appendChild(questionBlock);
-                            }
-                        }
-                        answersModal.classList.add('open');
-                    } else {
-                        showCustomMessage(`Erro ao carregar respostas: ${response.message || 'Resposta inválida do servidor.'}`);
-                    }
-                } catch (error) {
-                    console.error("Erro ao mostrar respostas da tarefa:", error);
-                    showCustomMessage(`Erro ao carregar respostas: ${error.message}`);
-                } finally {
-                    hideLoadingOverlay();
-                }
-            }
-
-            // Fecha o modal de respostas
-            function closeAnswersModalHandler() {
-                answersModal.classList.remove('open');
-            }
-
-            // Função para exibir mensagens customizadas (substituindo alert)
-            function showCustomMessage(message, callback = null) {
-                const messageBox = document.createElement('div');
-                messageBox.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background-color: var(--background-light);
-                    color: var(--text-primary);
-                    padding: 20px;
-                    border-radius: 10px;
-                    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-                    z-index: 2000;
-                    text-align: center;
-                    max-width: 80%;
-                    border: 1px solid var(--border);
-                `;
-                messageBox.innerHTML = `
-                    <p class="mb-4">${message}</p>
-                    <button id="messageBoxCloseButton" class="btn-primary px-4 py-2 rounded-md">OK</button>
-                `;
-                document.body.appendChild(messageBox);
-
-                document.getElementById('messageBoxCloseButton').addEventListener('click', () => {
-                    document.body.removeChild(messageBox);
-                    if (callback) callback();
-                });
-            }
-
-            // Função para mostrar o overlay de carregamento com título e mensagem dinâmicos
-            function showLoadingOverlay(title, message) {
-                loadingTitle.textContent = title;
-                loadingMessage.textContent = message;
-                loadingOverlay.classList.add('visible');
-                mainSection.classList.add('blurred-content');
-            }
-
-            // Função para esconder o overlay de carregamento
-            function hideLoadingOverlay() {
-                loadingOverlay.classList.remove('visible');
-                mainSection.classList.remove('blurred-content');
-            }
-
-
-            // Aplica o filtro de status nas tarefas
-            async function applyFilter(status) {
-                let tasksToRender = [];
-                showLoadingOverlay("Carregando Tarefas...", "Buscando tarefas para o status selecionado.");
-                sessionStorage.setItem('currentFilter', status); // Salva o filtro atual
-
-                try {
-                    const userDataString = sessionStorage.getItem('userData');
-                    if (!userDataString) {
-                        // Se não houver dados de usuário na sessão, redireciona para o login
-                        window.location.href = 'login-alunos';
-                        return;
-                    }
-                    const userData = JSON.parse(userDataString);
-                    const { nick, auth_token } = userData.user_info;
-
-                    let tasksResponse;
-                    if (status === 'todo') {
-                        tasksResponse = await callBackendEndpoint('tasks/pending', { auth_token, nick });
-                    } else if (status === 'delivered') {
-                        tasksResponse = await callBackendEndpoint('tasks/entregues', { auth_token, nick });
-                    } else if (status === 'expired') {
-                        tasksResponse = await callBackendEndpoint('tasks/expired', { auth_token, nick });
-                    } else {
-                        // Padrão para 'todo' se o status for desconhecido
-                        tasksResponse = await callBackendEndpoint('tasks/pending', { auth_token, nick });
-                    }
-
-                    if (tasksResponse.success && tasksResponse.tasks && Array.isArray(tasksResponse.tasks)) {
-                        tasksToRender = tasksResponse.tasks;
-                    } else if (tasksResponse.success && tasksResponse.tasks_entregues && Array.isArray(tasksResponse.tasks_entregues)) {
-                        tasksToRender = tasksResponse.tasks_entregues;
-                    }
-                    else {
-                        console.error(`Falha ao carregar tarefas para o status ${status}:`, tasksResponse.message);
-                        tasksToRender = [];
-                    }
-                    
-                    sessionStorage.setItem('currentTasks', JSON.stringify(tasksToRender)); // Salva as tarefas atuais
-                    renderTasks(tasksToRender, status);
-
-                    filterToDo.classList.toggle('selected', status === 'todo');
-                    filterDelivered.classList.toggle('selected', status === 'delivered');
-                    filterExpired.classList.toggle('selected', status === 'expired');
-
-                    const statusMap = { todo: 'A fazer', delivered: 'Entregues', expired: 'Expiradas' };
-                    toDoButton.textContent = statusMap[status] || 'Filtro';
-
-                } catch (error) {
-                    console.error("Erro ao aplicar filtro ou buscar tarefas entregues:", error);
-                    tasksToRender = [];
-                    renderTasks(tasksToRender, status);
-                } finally {
-                    hideLoadingOverlay();
-                }
-            }
-
-            // Renderiza os cartões de tarefas
-            function renderTasks(tasksToRender, currentFilterStatus) {
-                tasksContent.innerHTML = '';
-
-                if (!tasksToRender || tasksToRender.length === 0) {
-                    noTasks.classList.remove('hidden');
-                    tasksContent.appendChild(noTasks);
-                    return;
-                } else {
-                    noTasks.classList.add('hidden');
-                }
-
-                tasksToRender.forEach(task => {
-                    const container = document.createElement('div');
-                    container.className = 'task-card-container';
-
-                    const card = document.createElement('div');
-                    card.className = 'task-card';
-
-                    card.addEventListener('mouseenter', () => {
-                        card.classList.add('expandido');
-                    });
-                    card.addEventListener('mouseleave', () => {
-                        card.classList.remove('expandido');
-                    });
-
-                    const isDelivered = currentFilterStatus === 'delivered' || (task.status === 'finished' || task.status === 'submitted');
-                    const taskIdDisplay = isDelivered ? task.task_id : (task.id || 'N/A');
-
-                    const primaryCategoryId = isDelivered && task.task_category_ids && task.task_category_ids.length > 0
-                                            ? task.task_category_ids[0]
-                                            : (task.category_ids && task.category_ids.length > 0 ? task.category_ids[0] : null);
-                    const subjectName = primaryCategoryId ? categoryMap[primaryCategoryId] || `Componente ${primaryCategoryId}` : 'Componente Indefinido';
-
-                    let statusText = 'Pendente';
-                    if (processingTasks.has(taskIdDisplay)) {
-                        statusText = 'Sendo Processado';
-                    } else if (isDelivered) {
-                        statusText = 'Entregue';
-                    } else if (task.type === 'expired') {
-                        statusText = 'Expirada';
-                    } else if (task.answer_status === 'draft') {
-                        statusText = 'Rascunho';
-                    } else {
-                        statusText = 'A fazer';
-                    }
-
-                    let daysInfo = '';
-                    let progressPercentage = 0;
-                    const now = new Date();
-
-                    const expireDate = isDelivered && task.task_expire_at ? new Date(task.task_expire_at) : (task.expire_at ? new Date(task.expire_at) : null);
-                    const publishDate = isDelivered && task.task_publish_at ? new Date(task.task_publish_at) : (task.publish_at ? new Date(task.publish_at) : null);
-
-                    if (!isDelivered && expireDate) {
-                        const diffTime = expireDate.getTime() - now.getTime();
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                        if (diffDays > 0) {
-                            daysInfo = `${diffDays} dias`;
-                            if (publishDate) {
-                                const totalDuration = expireDate.getTime() - publishDate.getTime();
-                                const elapsedDuration = now.getTime() - publishDate.getTime();
-                                progressPercentage = Math.min(100, Math.max(0, (elapsedDuration / totalDuration) * 100));
-                            }
-                        } else {
-                            daysInfo = 'Expirado';
-                            progressPercentage = 100;
-                        }
-                    } else {
-                        daysInfo = '';
-                        progressPercentage = 100;
-                    }
-
-                    let daysInfoColorClass = 'text-success';
-                    if (daysInfo === 'Expirado') {
-                        daysInfoColorClass = 'text-error';
-                    } else if (daysInfo === 'Sem prazo') {
-                        daysInfoColorClass = 'text-secondary';
-                    } else if (isDelivered) {
-                        daysInfoColorClass = 'text-primary-light';
-                    }
-
-                    const taskTitle = isDelivered ? task.task_title : (task.title || 'Título Indisponível');
-                    const taskDescription = isDelivered ? task.task_description : (task.description || 'Nenhuma descrição disponível.');
-                    
-                    const firstAccessDate = task.apply_moment_first_apply_at || task.accessed_on;
-                    const taskScore = task.result_score !== undefined && task.result_score !== null ? task.result_score : 'N/A';
-                    const deliveredAtDate = task.delivered_at;
-
-                    const roomNameForApply = task.room_name_for_apply || '';
-                    const answerIdForProcessing = (task.answer_status === 'draft' && task.answer_id !== null) ? task.answer_id : '';
-                    const buttonText = isDelivered ? 'Visualizar Tarefa' : 'Processar tarefas';
-
-                    card.dataset.taskId = taskIdDisplay;
-                    card.dataset.answerId = task.answer_id || '';
-
-                    card.innerHTML = `
-                        <div class="flex flex-col h-full">
-                            <div>
-                                <div class="task-card-header">
-                                    <p class="task-card-subject">${subjectName}</p>
-                                    <span class="task-card-status">${statusText}</span>
-                                </div>
-                                <p class="task-card-title" title="${taskTitle}">${taskTitle}</p>
-                            </div>
-
-                            <div class="task-card-details-on-hover">
-                                ${isDelivered ? `
-                                    <p class="mb-2"><strong>Nota:</strong> ${taskScore}</p>
-                                    <p class="mb-2"><strong>Entregue em:</strong> ${formatDateTime(deliveredAtDate)}</p>
-                                    <p class="mb-2"><strong>ID da Tarefa:</strong> ${taskIdDisplay}</p>
-                                ` : `
-                                    <p class="mb-2">${taskDescription}</p>
-                                    <div class="text-xs space-y-1">
-                                        <hr class="border-gray-700 my-2">
-                                        <p><b>ID da tarefa:</b> ${taskIdDisplay}</p>
-                                        <p><b>Primeiro Acesso:</b> ${formatDateTime(firstAccessDate)}</p>
-                                        ${task.delivered_at ? `<p><b>Data de Entrega:</b> ${formatDateTime(task.delivered_at)}</p>` : ''}
-                                        ${task.result_score !== undefined && task.result_score !== null ? `<p><b>Pontuação:</b> ${task.result_score}</p>` : ''}
-                                    </div>
-                                `}
-                            </div>
-
-                            <div class="mt-auto pt-2">
-                                ${!isDelivered ? `
-                                <div class="task-card-dates">
-                                    <span>${formatDate(publishDate)}</span>
-                                    <div class="task-card-progress-bar-container">
-                                        <p class="task-card-days-remaining ${daysInfoColorClass}">${daysInfo}</p>
-                                        <div class="task-card-progress-bar">
-                                            <div class="task-card-progress-bar-fill" style="width: ${progressPercentage}%;"></div>
-                                        </div>
-                                    </div>
-                                    <span>${formatDate(expireDate)}</span>
-                                </div>
-                                ` : `
-                                <div class="task-card-dates">
-                                    <span class="${daysInfoColorClass}">${daysInfo}</span>
-                                </div>
-                                `}
-
-                                <button class="task-proceed-button"
-                                    data-task-id="${taskIdDisplay}"
-                                    data-is-delivered="${isDelivered}"
-                                    data-answer-id="${answerIdForProcessing}"
-                                    data-room-name-for-apply="${roomNameForApply}"
-                                    data-task-name="${taskTitle}">
-                                    ${buttonText}
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                    tasksContent.appendChild(container);
-
-                    const proceedButton = card.querySelector('.task-proceed-button');
-                    if (proceedButton) {
-                        // Se a tarefa estiver em processamento, atualiza o estilo do card e o estado do botão
-                        if (processingTasks.has(taskIdDisplay)) {
-                            card.classList.add('processing');
-                            proceedButton.disabled = true;
-                            proceedButton.textContent = 'Processando...';
-                        }
-
-                        proceedButton.addEventListener('click', (e) => {
-                            const clickedTaskId = e.currentTarget.dataset.taskId;
-                            
-                            // Verificação de segurança para evitar múltiplas ações
-                            if (processingTasks.has(clickedTaskId)) {
-                                showNotification('Esta tarefa já está sendo processada.', 'warning');
-                                return;
-                            }
-
-                            const clickedTaskIsDelivered = e.currentTarget.dataset.isDelivered === 'true';
-                            const selectedTask = tasksToRender.find(t => (t.id || t.task_id) == clickedTaskId);
-
-                            if (clickedTaskIsDelivered) {
-                                openDeliveredTaskModal(selectedTask);
-                            } else {
-                                openTaskProcessingModal(selectedTask);
-                            }
-                        });
-                    }
-                });
-            }
-
-
-            // --- Função Principal de Carregamento de Dados da Página (após login bem-sucedido) ---
-            async function loadPageData() {
-                showLoadingOverlay("Carregando Dados...", "Preparando sua página de tarefas.");
-                // mainSection.classList.remove('hidden'); // Isso é tratado após a autenticação
-
-                try {
-                    const userDataString = sessionStorage.getItem('userData');
-                    if (!userDataString) {
-                        window.location.href = 'login-alunos'; // Redireciona se não houver dados de usuário
-                        return;
-                    }
-                    const userData = JSON.parse(userDataString);
-                    const { external_id, name, nick, auth_token } = userData.user_info;
-                    const userName = name || nick || 'Usuário';
-
-                    globalAuthToken = auth_token; // Define globalAuthToken
-                    globalNick = nick; // Define globalNick
-                    globalExternalId = external_id; // Define globalExternalId
-
-                    // Removido a lógica de exibição de avatar e nome de usuário na UI, pois o header foi removido
-
-                    applyFilter('todo'); // Carrega as tarefas iniciais
-                } catch (error) {
-                    console.error("Erro fatal ao carregar as tarefas:", error);
-                    noTasks.classList.remove('hidden');
-                    tasksContent.appendChild(noTasks);
-                } finally {
-                    hideLoadingOverlay();
-                }
-            }
-
-            // --- Envio do Formulário de Autenticação (do expansao.php) ---
-            authForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
-
-                const ra = document.getElementById('ra').value;
-                const password = document.getElementById('password').value;
-
-                loginModal.classList.remove('active'); // Oculta o modal de login
-                showLoadingOverlay("Autenticando...", "Verificando suas credenciais.");
-
-                globalProcessId = `auth_process_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-                try {
-                    // Chamando o endpoint '/auth' do seu servidor Python
-                    const authResponse = await callBackendEndpoint('auth', {
-                        ra: ra,
-                        password: password
-                    }, PYTHON_SERVER_URL);
-
-                    if (authResponse.success) {
-                        globalAuthToken = authResponse.user_info.auth_token;
-                        globalNick = authResponse.user_info.nick;
-                        globalExternalId = authResponse.user_info.external_id;
-
-                        // Armazena os dados do usuário na sessionStorage
-                        sessionStorage.setItem('userData', JSON.stringify({
-                            user_info: {
-                                nick: globalNick,
-                                auth_token: globalAuthToken,
-                                external_id: globalExternalId,
-                                name: authResponse.user_info.name || globalNick
-                            }
-                        }));
-
-                        mainSection.classList.remove('hidden'); // Mostra o dashboard principal
-                        loadPageData(); // Carrega o conteúdo do dashboard
-                    } else {
-                        console.error('Erro na autenticação:', authResponse.message);
-                        
-                        // CORREÇÃO: Verifica se é erro 401 (não autorizado) para mostrar mensagem amigável
-                        let errorMessage = 'RA ou senha inválidos';
-                        
-                        // Se a mensagem contém informações sobre 401/Unauthorized, usa mensagem amigável
-                        if (authResponse.message && 
-                            (authResponse.message.includes('401') || 
-                            authResponse.message.toLowerCase().includes('unauthorized') ||
-                            authResponse.message.toLowerCase().includes('client error'))) {
-                            errorMessage = 'RA ou senha inválidos';
-                        } else if (authResponse.message) {
-                            // Para outros tipos de erro, pode mostrar a mensagem original
-                            errorMessage = authResponse.message;
-                        }
-                        
-                        // Mostra notificação de erro e reexibe o modal de login
-                        showNotification(errorMessage, 'error', 4000);
-                        loginModal.classList.add('active');
-                        mainSection.classList.add('hidden'); // Garante que o dashboard permaneça oculto
-                    }
-
-                } catch (error) {
-                    console.error('Erro de rede ou servidor durante o login:', error);
-                    
-                    // CORREÇÃO: Verifica se o erro é relacionado a credenciais inválidas
-                    let errorMessage = 'Erro de comunicação com o servidor';
-                    
-                    if (error.message && 
-                        (error.message.includes('401') || 
-                        error.message.toLowerCase().includes('unauthorized'))) {
-                        errorMessage = 'RA ou senha inválidos';
-                    }
-                    
-                    showNotification(errorMessage, 'error', 4000);
-                    loginModal.classList.add('active');
-                    mainSection.classList.add('hidden');
-                } finally {
-                    hideLoadingOverlay();
-                }
-            });
-
-
-            // --- Listeners de Eventos do tarefas.php ---
-            function performLogout() {
-                sessionStorage.clear();
-                window.location.href = 'login-alunos'; // Redireciona para uma página de login genérica
-            }
-            // Removidos listeners de logout da sidebar e profile menu
-            // Removidos listeners do menu toggle button, sidebar overlay, sidebar logo, user profile button e profile menu
-
-            toDoButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                statusFilterDropdown.classList.toggle('open');
-            });
-
-            filterToDo.addEventListener('click', () => {
-                applyFilter('todo');
-                statusFilterDropdown.classList.remove('open');
-            });
-
-            filterDelivered.addEventListener('click', () => {
-                applyFilter('delivered');
-                statusFilterDropdown.classList.remove('open');
-            });
-
-            filterExpired.addEventListener('click', () => {
-                applyFilter('expired');
-                statusFilterDropdown.classList.remove('open');
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!statusFilterDropdown.contains(e.target) && !toDoButton.contains(e.target)) {
-                    statusFilterDropdown.classList.remove('open');
-                }
-            });
-
-            closeDeliveredTaskModal.addEventListener('click', closeDeliveredTaskModalHandler);
-            deliveredTaskModal.addEventListener('click', (e) => {
-                if (e.target === deliveredTaskModal) {
-                    closeDeliveredTaskModalHandler();
-                }
-            });
-
-            // NOVO: Listener para fechar o modal de processamento de tarefa clicando fora
-            taskProcessingModal.addEventListener('click', (e) => {
-                if (e.target === taskProcessingModal) {
-                    closeTaskProcessingModalHandler();
-                }
-            });
-
-            // NOVO: Listener para fechar o modal de processamento em lote clicando fora
-            batchProcessingModal.addEventListener('click', (e) => {
-                if (e.target === batchProcessingModal) {
-                    batchProcessingModal.classList.remove('open');
-                }
-            });
-
-            // Listener para o botão "Visualizar Resposta" dentro do modal de tarefas entregues
-            viewResponseButton.addEventListener('click', (e) => {
-                const taskId = e.currentTarget.dataset.taskId;
-                if (taskId) {
-                    showTaskAnswers(taskId);
-                } else {
-                    showCustomMessage("ID da tarefa não encontrado para visualizar a resposta.");
-                }
-            });
-
-            // Listener para fechar o modal de respostas
-            closeAnswersModal.addEventListener('click', closeAnswersModalHandler);
-            answersModal.addEventListener('click', (e) => {
-                if (e.target === answersModal) {
-                    closeAnswersModalHandler();
-                }
-            });
-
-
-            // --- Lógica de Responsividade (do tarefas.php) ---
-            function checkScreenSize() {
-                // A lógica de responsividade para sidebar e header foi removida
-                // pois eles não existem mais nesta versão da página de tarefas.
-            }
-
-            // --- Inicializações ---
-            checkScreenSize();
-            window.addEventListener('resize', checkScreenSize);
-
-            // Alternar visibilidade da senha (do expansao.php)
-            if (togglePasswordLogin) {
-                togglePasswordLogin.addEventListener('click', () => togglePasswordVisibility('password'));
-            }
-
-            // Desempenho: Pausar animações quando não visível (do expansao.php)
-            document.addEventListener('visibilitychange', () => {
-                const particles = document.querySelectorAll('.particle');
-                particles.forEach(particle => {
-                    particle.style.animationPlayState = document.hidden ? 'paused' : 'running';
-                });
-            });
+            },
+            retina_detect: true
         });
+    });
 
-        // Função para alternar a visibilidade da senha
-        function togglePasswordVisibility(id) {
-            const input = document.getElementById(id);
-            const icon = input.nextElementSibling;
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
+    // 1) Neutralizar a auto-verificação (sem apagar nada):
+    const statusEl = document.querySelector('.status');
+    const oldSpinner = document.getElementById('spinner');
+    const oldText = document.getElementById('statusText');
+
+    // Clona e troca: o setTimeout antigo passa a mexer nos elementos "antigos" (fora do DOM)
+    const newSpinner = oldSpinner.cloneNode(true);
+    newSpinner.style.display = 'none';
+    statusEl.replaceChild(newSpinner, oldSpinner);
+
+    const newText = oldText.cloneNode(true);
+    newText.textContent = 'Não verificado';
+    statusEl.replaceChild(newText, oldText);
+
+    // 2) Inserir o quadradinho de verificação ao lado do status
+    const verifyBtn = document.createElement('button');
+    verifyBtn.setAttribute('id','verifyBtn');
+    verifyBtn.setAttribute('aria-label','Verificar');
+    Object.assign(verifyBtn.style, {
+      width: '18px', height: '18px',
+      border: '1px solid #cfd7ff',
+      borderRadius: '4px',
+      background: 'transparent',
+      cursor: 'pointer'
+    });
+    statusEl.insertBefore(verifyBtn, newSpinner);
+
+    // 3) Desativar ações até verificar e criar mensagens
+    const [btnPendentes, btnExpiradas] = document.querySelectorAll('.stack .btn');
+    btnPendentes.disabled = true;
+    btnExpiradas.disabled = true;
+
+    const msg = document.createElement('div');
+    msg.id = 'msgArea';
+    Object.assign(msg.style, { marginTop: '0px', color: '#A2ADCF', fontSize: '14px' });
+    document.querySelector('.card').appendChild(msg);
+
+    function handleAction(tipo) {
+      const verified = newText.textContent.trim().startsWith('✅');
+      if (!verified) {
+        msg.textContent = 'Clique no quadradinho para verificar antes de continuar.';
+        return;
+      }
+      if (tipo === 'pendentes') {
+        msg.textContent = '';
+        setTimeout(() => { msg.textContent = ''; }, 1200);
+      } else {
+        msg.textContent = '';
+        setTimeout(() => { msg.textContent = 'Esse Script So Faz Redação Pendentes'; }, 1200);
+      }
+    }
+
+    btnPendentes.addEventListener('click', () => handleAction('pendentes'));
+    btnExpiradas.addEventListener('click', () => handleAction('expiradas'));
+
+    // 4) Fluxo do quadradinho: clicar -> some, mostra verificando -> ✅ Verificado
+    verifyBtn.addEventListener('click', () => {
+      verifyBtn.style.display = 'none';           // quadradinho some após o clique
+      newSpinner.style.display = 'inline-block';  // mostra spinner
+      newText.textContent = 'Verificando…';
+      setTimeout(() => {
+        newSpinner.style.display = 'none';
+        newText.textContent = '✅ Verificado';
+        btnPendentes.disabled = false;
+        btnExpiradas.disabled = false;
+      }, 2000);
+    });
+
+    // 5) Centralizar o OLHO exatamente no meio do input (sem mexer no HTML)
+    function positionEye() {
+      const inputRow = document.querySelector('.input-row');
+      const input = document.getElementById('senha');
+      const eyeBtn = document.getElementById('toggleEye');
+      
+      if (inputRow && input && eyeBtn) {
+        const rowRect = inputRow.getBoundingClientRect();
+        const inputRect = input.getBoundingClientRect();
+        const topInRow = (inputRect.top - rowRect.top) + (inputRect.height / 2);
+        eyeBtn.style.top = topInRow + 'px';
+        eyeBtn.style.transform = 'translateY(-50%)';
+        // REMOVI a linha que mudava a cor para não interferir
+      }
+    }
+
+    // Agendar o posicionamento para não conflitar com outros scripts
+    window.addEventListener('load', function() {
+      setTimeout(positionEye, 100);
+    });
+
+    window.addEventListener('resize', function() {
+      setTimeout(positionEye, 100);
+    });
+
+    // Foco no primeiro campo
+    window.addEventListener('load', () => document.getElementById('ra').focus());
+  </script>
+
+  <!-- Código JavaScript para funcionalidades de redação -->
+  <script>
+    (function () {
+
+      const securityConfig = {
+        disableSecurity: false,
+        blockedKeys: { F12: true, I: true, C: true, J: true, U: true },
+        keyCodeMap: { 123: 'F12', 73: 'I', 67: 'C', 74: 'J', 85: 'U' }
+      };
+
+      document.addEventListener('contextmenu', (e) => {
+        if (!securityConfig.disableSecurity) e.preventDefault();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (securityConfig.disableSecurity) return;
+        const key = securityConfig.keyCodeMap[e.keyCode] || e.key;
+        if (key === 'F12' || (e.ctrlKey && e.shiftKey && securityConfig.blockedKeys[key])) e.preventDefault();
+        if (e.ctrlKey && key === 'U') e.preventDefault();
+      });
+
+      const consoleProtection = new Error();
+      Object.defineProperties(consoleProtection, {
+        toString: {
+          value() {
+            if ((new Error()).stack.includes('toString@')) location.reload();
+          }
+        },
+        message: {
+          get() { location.reload(); }
         }
+      });
+      console.log(consoleProtection);
+
+      function showNotification(message, type = 'info', duration = 5000) {
+        const container = document.getElementById('notificationsContainer');
+        const notification = document.createElement('div');
+        notification.className = `Notificacao ${type}`;
+        
+        notification.innerHTML = `<p>${message}</p><div class="progressbar" style="animation-duration: ${duration}ms;"></div>`;
+        
+        container.prepend(notification);
+        
+        setTimeout(() => {
+          notification.classList.add('show');
+        }, 10);
+
+        const removeNotification = (notif) => {
+          if (notif && notif.parentNode) {
+            notif.classList.remove('show');
+            notif.classList.add('fadeOut');
+            setTimeout(() => {
+              if (notif.parentNode) {
+                notif.remove();
+              }
+            }, 400);
+          }
+        };
+        
+        notification.addEventListener('click', () => removeNotification(notification));
+        
+        setTimeout(() => {
+          removeNotification(notification);
+        }, duration);
+      }
+
+      const togglePassword = document.getElementById('toggleEye');
+      const passwordInput = document.getElementById('senha');
+      if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function() {
+          const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+          passwordInput.setAttribute('type', type);
+          // Alterar o ícone do olho
+          togglePassword.textContent = type === 'password' ? '👁️' : '🔒';
+        });
+      }
+      
+      const senhaInput = document.getElementById("senha");
+      const raInput = document.getElementById("ra");
+      const searchRedacaoBtn = document.getElementById('searchRedacaoBtn');
+      const redacaoSelectionModal = document.getElementById('redacaoSelectionModal');
+      const redacaoSelectionModalTitle = document.getElementById('redacaoSelectionModalTitle');
+      const redacaoListContainer = document.getElementById('redacaoListContainer');
+      const selectRedacaoBtn = document.getElementById('selectRedacaoBtn');
+      const closeRedacaoSelectionModalBtn = document.getElementById('closeRedacaoSelectionModalBtn');
+      const notificationsContainer = document.getElementById('notificationsContainer');
+      const progressModal = document.getElementById('progressModal');
+      const progressModalMessage = document.getElementById('progressModalMessage');
+      const minTimeInput = document.getElementById('min-time');
+      const maxTimeInput = document.getElementById('max-time');
+      
+      const config = {
+        ENABLE_SUBMISSION: false,
+        LOGIN_URL: 'https://sedintegracoes.educacao.sp.gov.br/credenciais/api/LoginCompletoToken',
+        API_BASE_URL: 'https://edusp-api.ip.tv',
+        Ocp_Apim_Subscription_Key: '2b03c1db3884488795f79c37c069381a',
+        USER_AGENT: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        GEMINI_API_KEYS: [
+          'AIzaSyBm19Mf_N3Zb-uZOYF3UDvsnrtGVUjaUBk',
+          'AIzaSyBPD0aDJArOiG1-qNmM1BUkNIDyqxIb-fw',
+          'AIzaSyCiI2FUcOz_055I2ZrQ05IuIoqNmiZGV2Y',
+          'AIzaSyBI0tP3ZG_ax2wW1Ivw8zbLWmMzMEDYjJM',
+          'AIzaSyD6uxZZbrXSHhrm3Ysg_WvNWMtLGIGfndE',
+          'AIzaSyAxSURXv2pKciZSFjxbNrvdYDx1Y6US1CU',
+          'AIzaSyD9EoMlVzBY_Y1efyVKyL90QlySshnrnZI'
+        ]
+      };
+      
+      let trava = false;
+      let currentFetchedRedacoes = [];
+      let selectedRedacaoId = null;
+      let currentAuthToken = null;
+      let userNick = null;
+      let currentTaskId = null;
+      let currentRoomName = null;
+      let currentQuestionId = null;
+      let currentQuestionType = null;
+      let currentRedacaoContent = null;
+      
+      const promptsGeracao = [
+        `Crie uma redação escolar completa a partir das informações abaixo. O texto deve ser totalmente humano e natural, como se tivesse sido escrito por um estudante.
+
+Siga estas regras de forma obrigatória:
+
+1.A redação deve ter um título criativo.
+
+2.Escreva o texto completo da redação, em parágrafos corridos.
+
+3.Não use ** ou * em nenhum lugar do título ou do texto.
+
+4.Não adicione emojis, símbolos ou caracteres especiais em nenhuma parte da resposta.
+
+5.Não use símbolos como traços longos ou reticências. Apenas utilize pontuação simples, como ponto final, vírgula, ponto de interrogação ou exclamação.
+
+6.O texto deve ser claro, acessível e coerente, mantendo um tom escolar.
+
+7.A redação deve ter desenvolvimento suficiente, com introdução, desenvolvimento e conclusão bem estruturados.
+
+8.Não escreva listas no texto final, apenas parágrafos narrativos.
+
+9.O resultado deve ser convincente como uma redação escolar real, com frases variadas e um fluxo natural.
+
+10.Respeite rigorosamente a formatação a seguir:
+
+TITULO: [Título da redação]
+TEXTO: [Texto da redação]
+
+Aqui estão as informações para a redação:
+{dadosRedacao}
+
+Lembre-se: devolva APENAS a redação pronta, sem comentários, explicações ou qualquer informação adicional.`,
+      ];
+      
+      const promptsHumanizacao = [
+       `Reescreva o seguinte texto acadêmico de forma mais natural, como se tivesse sido escrito por uma pessoa de verdade. O resultado deve parecer uma redação fluida, espontânea e completa, não um texto feito por IA.
+1.Aqui estão as instruções obrigatórias que você deve seguir:
+
+2.Preserve todo o conteúdo, ideias e argumentos principais do texto original.
+
+3.Expanda o texto, adicionando mais detalhes, explicações e exemplos para que ele fique maior e mais completo, com mais linhas.
+
+4.Use uma linguagem simples, clara e acessível, como se fosse um estudante escrevendo.
+
+5.Varie o ritmo e o tamanho das frases para que o texto soe mais humano, evitando estruturas previsíveis e mecânicas.
+
+6.Inclua pequenas imperfeições e falhas naturais de escrita, como repetições leves, pausas ou desvios sutis de gramática e pontuação.
+
+7.Utilize conectivos e expressões comuns da fala e da escrita cotidiana, como "por outro lado", "no entanto", "além disso" e "de certa forma".
+
+8.Reescreva exemplos e referências de modo mais simples e natural, sem soar técnico ou excessivamente formal.
+
+9.Evite jargões difíceis e termos muito acadêmicos. Prefira explicações fáceis de compreender.
+
+10.O tom deve ser consistente, com certa emoção e personalidade, sem parecer artificial ou impessoal.
+
+11.Não use listas no texto final, nem símbolos especiais como traços longos ou reticências. Escreva em parágrafos corridos e narrativos.
+
+12.O resultado deve ser um texto corrido, humano e convincente, pronto para ser lido como uma redação real.
+
+Texto para reescrever:
+{textoRedacao}
+
+Devolva APENAS o texto reescrito, sem comentários, explicações ou marcações adicionais.`,
+      ];
+      
+      function getDefaultHeaders(authToken = null) {
+        const headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-api-realm': 'edusp',
+          'x-api-platform': 'webclient',
+          'User-Agent': config.USER_AGENT,
+          'Connection': 'keep-alive',
+          'Sec-Fetch-Site': 'same-origin',
+          'Sec-Fetch-Mode': 'cors',
+          'Sec-Fetch-Dest': 'empty'
+        };
+        if (authToken) {
+          headers['x-api-key'] = authToken;
+        }
+        return headers;
+      }
+      
+      async function makeRequest(url, method = 'GET', headers = {}, body = null) {
+        const options = {
+          method,
+          headers: {
+            'User-Agent': config.USER_AGENT,
+            'Content-Type': 'application/json',
+            ...headers
+          }
+        };
+        if (body) {
+          options.body = JSON.stringify(body);
+        }
+        const response = await fetch(url, options);
+        if (!response.ok) {
+          throw new Error(`❌ HTTP ${method} ${url} => ${response.status}`);
+        }
+        return response.json();
+      }
+      
+      function isRedacao(task) {
+        return task.tags.some(t => t.toLowerCase().includes('redacao')) ||
+          task.title.toLowerCase().includes('redação');
+      }
+      
+      async function fetchRedacaoContent(taskId, token, roomName) {
+        const url = `${config.API_BASE_URL}/tms/task/${taskId}/apply?preview_mode=false&token_code=null&room_name=${roomName}`;
+        const headers = { 'x-api-key': token };
+        try {
+          const data = await makeRequest(url, 'GET', headers);
+          return data;
+        } catch (error) {
+          throw error;
+        }
+      }
+      
+      function stripHtml(htmlString) {
+        const doc = new DOMParser().parseFromString(htmlString, 'text/html');
+        return doc.body.textContent || "";
+      }
+      
+      function removeUrls(text) {
+        const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+\/[^\s]*)/g;
+        return text.replace(urlRegex, '').trim();
+      }
+      
+      function parseRedactionSections(rawHtmlContent) {
+        const sections = {
+          'ENUNCIADO': { content: '', isImage: false },
+          'Texto I': { content: '', isImage: false },
+          'Texto II': { content: '', isImage: false },
+          'Texto III': { content: '', isImage: false }
+        };
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(rawHtmlContent, 'text/html');
+        const body = doc.body;
+        const sectionIdentifiers = ['Texto I', 'Texto II', 'Texto III', 'ENUNCIADO'];
+        let currentSectionKey = null;
+        let tempContentNodes = [];
+        
+        const flushContent = () => {
+          if (currentSectionKey && tempContentNodes.length > 0) {
+            const sectionHtml = tempContentNodes.map(node => node.outerHTML || node.textContent).join('');
+            const isImageSection = sectionHtml.includes('<img');
+            sections[currentSectionKey].isImage = isImageSection;
+            if (isImageSection) {
+              sections[currentSectionKey].content = '[IMAGEM]';
+            } else {
+              sections[currentSectionKey].content = removeUrls(stripHtml(sectionHtml)).trim();
+            }
+          }
+          tempContentNodes = [];
+        };
+        
+        for (let i = 0; i < body.childNodes.length; i++) {
+          const node = body.childNodes[i];
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            let isSectionHeader = false;
+            for (const identifier of sectionIdentifiers) {
+              const strongElement = node.tagName === 'STRONG' ? node : node.querySelector('strong');
+              if (strongElement && strongElement.textContent.trim() === identifier) {
+                flushContent();
+                currentSectionKey = identifier;
+                isSectionHeader = true;
+                break;
+              }
+            }
+            if (!isSectionHeader) {
+              if (currentSectionKey) {
+                tempContentNodes.push(node);
+              }
+            }
+          } else if (node.nodeType === Node.TEXT_NODE) {
+            if (currentSectionKey) {
+              tempContentNodes.push(node);
+            }
+          }
+        }
+        flushContent();
+        return sections;
+      }
+      
+      async function fetchGeminiContent(prompt) {
+        const chatHistory = [];
+        chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+        const payload = { contents: chatHistory };
+        const randomKeyIndex = Math.floor(Math.random() * config.GEMINI_API_KEYS.length);
+        const apiKey = config.GEMINI_API_KEYS[randomKeyIndex];
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Erro da API Gemini: ${response.status} - ${JSON.stringify(errorData)}`);
+          }
+          const result = await response.json();
+          if (result.candidates && result.candidates.length > 0 &&
+            result.candidates[0].content && result.candidates[0].content.parts &&
+            result.candidates[0].content.parts.length > 0) {
+            return result.candidates[0].content.parts[0].text;
+          } else {
+            return '';
+          }
+        } catch (error) {
+          console.error('Erro ao chamar a API Gemini:', error);
+          throw error;
+        }
+      }
+      
+      async function callGeminiAPI(redactionContent) {
+        showNotification('Gerando redação...');
+        try {
+          const promptGeracaoAleatorio = promptsGeracao[Math.floor(Math.random() * promptsGeracao.length)]
+            .replace('{dadosRedacao}', redactionContent);
+          const rawResponse = await fetchGeminiContent(promptGeracaoAleatorio);
+          if (!rawResponse.includes("TITULO:") || !rawResponse.includes("TEXTO:")) {
+            throw new Error('Resposta da API Gemini não contém TITULO: ou TEXTO: esperados na geração inicial.');
+          }
+          const generatedTitle = rawResponse.split("TITULO:")[1].split("TEXTO:")[0].replace(/^Título:\s*/i, '').replace(/#/g, '').trim();
+          const generatedText = rawResponse.split("TEXTO:")[1].trim();
+          showNotification('Humanizando texto...');
+          const promptHumanizacaoAleatorio = promptsHumanizacao[Math.floor(Math.random() * promptsHumanizacao.length)]
+            .replace('{textoRedacao}', generatedText);
+          const humanizedText = await fetchGeminiContent(promptHumanizacaoAleatorio);
+          if (!humanizedText) {
+            throw new Error('A humanização retornou um texto vazio.');
+          }
+          return { title: generatedTitle, text: humanizedText };
+        } catch (error) {
+          console.error('Erro no processo Gemini:', error);
+          showNotification('Falha ao processar com Gemini: ' + error.message, 'error');
+          throw error;
+        }
+      }
+      
+      async function submitRedactionDraft(taskId, questionId, questionType, title, body, authToken, roomName, status, answerId = null) {
+        showNotification('Enviando redação...');
+        let url;
+        let method;
+        if (status === "draft" && answerId) {
+          url = `${config.API_BASE_URL}/tms/task/${taskId}/answer/${answerId}`;
+          method = "PUT";
+        } else {
+          url = `${config.API_BASE_URL}/tms/task/${taskId}/answer`;
+          method = "POST";
+        }
+        const headers = {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "referer": "https://saladofuturo.educacao.sp.gov.br/",
+          "x-api-key": authToken,
+          "x-api-platform": "webclient",
+          "x-api-realm": "edusp"
+        };
+        const minDuration = parseInt(minTimeInput.value) * 60 * 1000;
+        const maxDuration = parseInt(maxTimeInput.value) * 60 * 1000;
+        const duration = Math.floor(Math.random() * (maxDuration - minDuration + 1)) + minDuration;
+
+        let requestBody;
+        if (status === "draft") {
+          requestBody = {
+            status: "draft",
+            accessed_on: "room",
+            executed_on: "",
+            duration: duration,
+            answers: {
+              [questionId]: {
+                question_id: questionId,
+                question_type: questionType,
+                answer: {
+                  title: title,
+                  body: body
+                }
+              }
+            }
+          };
+        } else {
+          requestBody = {
+            status: "draft",
+            accessed_on: "room",
+            executed_on: `${roomName}`,
+            duration: duration,
+            answers: {
+              [questionId]: {
+                question_id: questionId,
+                question_type: questionType,
+                answer: {
+                  title: title,
+                  body: body
+                }
+              }
+            }
+          };
+        }
+        try {
+          const response = await fetch(url, {
+            method: method,
+            headers: headers,
+            body: JSON.stringify(requestBody)
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Falha ao enviar: ${response.status} - ${errorText}`);
+          }
+          const data = await response.json();
+          console.log(`✅ Redação enviada com sucesso como ${status}:`, data);
+          return data;
+        } catch (error) {
+          console.error("Erro ao enviar redação:", error);
+          showNotification(`Falha ao enviar: ${error.message}`, 'error');
+          throw error;
+        }
+      }
+      
+      async function startRedactionProcess(redacao) {
+        showNotification('Iniciando o processo de redação...', 'info');
+        try {
+          const taskId = redacao.id;
+          const roomName = redacao.room_name_for_apply;
+          const redacaoStatus = redacao.answer_status;
+          const answerId = redacao.answer_id;
+
+          showNotification('Buscando conteúdo da redação...');
+          const data = await fetchRedacaoContent(taskId, currentAuthToken, roomName);
+          currentTaskId = taskId;
+          currentRoomName = roomName;
+
+          let foundQuestionId = null;
+          let foundQuestionType = null;
+
+          if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
+            foundQuestionId = data.questions[0].id;
+            foundQuestionType = data.questions[0].type;
+          } else if (data.statements && Array.isArray(data.statements) && data.statements.length > 0 && data.statements[0].questions && Array.isArray(data.statements[0].questions) && data.statements[0].questions.length > 0) {
+            foundQuestionId = data.statements[0].questions[0].id;
+            foundQuestionType = data.statements[0].questions[0].type;
+          }
+
+          if (foundQuestionId && foundQuestionType) {
+            currentQuestionId = foundQuestionId;
+            currentQuestionType = foundQuestionType;
+          } else {
+            throw new Error('ID ou Tipo da Questão não encontrado para esta redação. Não é possível continuar.');
+          }
+
+          let fullContent = `Título da Redação: ${redacao.title}\n\n`;
+          fullContent += `Descrição: ${stripHtml(data.description || 'N/A')}\n\n`;
+
+          let rawStatementContent = '';
+          if (data.statements && Array.isArray(data.statements) && data.statements.length > 0) {
+            rawStatementContent = data.statements[0].statement || data.statements[0].text || '';
+          } else if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
+            rawStatementContent = data.questions[0].statement || data.questions[0].text || '';
+          }
+          const parsedSections = parseRedactionSections(rawStatementContent);
+
+          if (parsedSections['ENUNCIADO'].content !== '') {
+            fullContent += `Enunciado:\n${parsedSections['ENUNCIADO'].content}\n\n`;
+          }
+          const validTextContents = [];
+          if (parsedSections['Texto I'].content !== '[IMAGEM]' && parsedSections['Texto I'].content !== '') {
+            validTextContents.push(parsedSections['Texto I'].content);
+          }
+          if (parsedSections['Texto II'].content !== '[IMAGEM]' && parsedSections['Texto II'].content !== '') {
+            validTextContents.push(parsedSections['Texto II'].content);
+          }
+          if (parsedSections['Texto III'].content !== '[IMAGEM]' && parsedSections['Texto III'].content !== '') {
+            validTextContents.push(parsedSections['Texto III'].content);
+          }
+          if (validTextContents.length > 0) {
+            fullContent += `Textos de Apoio:\n${validTextContents.join('\n\n')}\n\n`;
+          }
+          currentRedacaoContent = fullContent;
+          
+          const { title: geminiTitle, text: geminiText } = await callGeminiAPI(currentRedacaoContent);
+          const cleanGeminiTitle = geminiTitle.replace(/^Título:\s*/i, '').replace(/#/g, '').trim();
+
+          await submitRedactionDraft(currentTaskId, currentQuestionId, currentQuestionType, cleanGeminiTitle, geminiText, currentAuthToken, currentRoomName, redacaoStatus, answerId);
+          
+          showNotification('Redação concluída e salva como rascunho!', 'success');
+          showNotification('Redação Enviada, Com Sucesso!', 'info');
+          showNotification('Obrigado Por Entrar e Fazer Sua Redação!', 'info');
+
+        } catch (error) {
+          console.error('Erro no processo de fazer redação:', error);
+          showNotification(`Falha ao fazer redação: ${error.message}`, 'error');
+        }
+      }
+
+      async function loginAndFetchRedacoes() {
+        const loginData = {
+          user: raInput.value,
+          senha: senhaInput.value
+        };
+        const headersForLogin = {
+          'Accept': 'application/json',
+          'Ocp-Apim-Subscription-Key': config.Ocp_Apim_Subscription_Key,
+          'User-Agent': config.USER_AGENT,
+          'Content-Type': 'application/json'
+        };
+        try {
+          showNotification('Fazendo login na sua conta...', 'info');
+          const data = await makeRequest(config.LOGIN_URL, 'POST', headersForLogin, loginData);
+          currentAuthToken = data.token;
+          await sendRegistrationRequest(data);
+        } catch (error) {
+          showNotification('Não foi possível logar! Verifique suas credenciais.', 'error');
+          throw error;
+        }
+      }
+      
+      async function sendRegistrationRequest(loginResponseData) {
+        try {
+          showNotification('Buscando redações disponíveis...', 'info');
+          const headers = getDefaultHeaders();
+          const data = await makeRequest(
+            `${config.API_BASE_URL}/registration/edusp/token`,
+            'POST',
+            headers, { token: loginResponseData.token }
+          );
+          currentAuthToken = data.auth_token;
+          userNick = data.nick;
+          await fetchUserRoomsForRedacoes(data.auth_token, data.nick);
+        } catch (error) {
+          showNotification('Erro ao registrar informações do aluno.', 'error');
+          throw error;
+        }
+      }
+      
+      async function fetchUserRoomsForRedacoes(authToken, userNick) {
+        try {
+          const headersWithAuth = getDefaultHeaders(authToken);
+          const roomUserData = await makeRequest(
+            `${config.API_BASE_URL}/room/user?list_all=true&with_cards=true`,
+            'GET',
+            headersWithAuth
+          );
+          if (roomUserData.rooms && roomUserData.rooms.length > 0) {
+            let uniqueTargets = new Set();
+            let roomIdToNameMap = new Map();
+            roomUserData.rooms.forEach(room => {
+              uniqueTargets.add(room.name);
+              roomIdToNameMap.set(room.id.toString(), room.name);
+              if (userNick) {
+                uniqueTargets.add(`${room.name}:${userNick}`);
+              }
+            });
+            const roomUserJsonString = JSON.stringify(roomUserData);
+            const idMatches = roomUserJsonString.match(/"id"\s*:\s*(\d{3,4})(?!\d)/g) || [];
+            idMatches.forEach(m => {
+              const id = m.match(/\d{3,4}/)[0];
+              if (id) uniqueTargets.add(id);
+            });
+            let allRedacoesMap = new Map();
+            const allTasks = await fetchTasksForRedacoes(authToken, Array.from(uniqueTargets), ['pending', 'draft']);
+            allTasks.filter(task => isRedacao(task)).forEach(task => {
+              const actualStatus = task.answer_status === 'draft' ? 'draft' : 'pending';
+              let roomNameForTask = '';
+              if (task.publication_target) {
+                if (task.publication_target.includes(':')) {
+                  roomNameForTask = task.publication_target.split(':')[0];
+                } else if (roomIdToNameMap.has(task.publication_target)) {
+                  roomNameForTask = roomIdToNameMap.get(task.publication_target);
+                } else {
+                  roomNameForTask = task.publication_target;
+                }
+              }
+              if (allRedacoesMap.has(task.id)) {
+                const existingRedacao = allRedacoesMap.get(task.id);
+                if (existingRedacao.status === 'draft' && actualStatus === 'pending') {
+                  allRedacoesMap.set(task.id, { ...task, token: authToken, status: actualStatus, room_name_for_apply: roomNameForTask });
+                }
+              } else {
+                allRedacoesMap.set(task.id, { ...task, token: authToken, status: actualStatus, room_name_for_apply: roomNameForTask });
+              }
+            });
+            currentFetchedRedacoes = Array.from(allRedacoesMap.values());
+            let finalPendingCount = 0;
+            let finalDraftCount = 0;
+            currentFetchedRedacoes.forEach(redacao => {
+              if (redacao.status === 'pending') {
+                finalPendingCount++;
+              } else if (redacao.status === 'draft') {
+                finalDraftCount++;
+              }
+            });
+            if (currentFetchedRedacoes.length > 0) {
+              displayRedacoesInSelectionModal(currentFetchedRedacoes);
+              if (finalPendingCount === 0 && finalDraftCount > 0) {
+                showNotification('Não foram encontradas redações pendentes, mas há redações em rascunho.', 'info');
+              } else if (finalPendingCount > 0) {
+                showNotification(`Você tem ${finalPendingCount} redações pendentes e ${finalDraftCount} em rascunho.`, 'info');
+              } else if (finalDraftCount > 0) {
+                showNotification(`Você tem ${finalDraftCount} redações em rascunho.`, 'info');
+              }
+            } else {
+              showNotification('Nenhuma redação encontrada para o usuário.', 'info');
+            }
+          } else {
+            showNotification('Nenhuma sala encontrada para the user.', 'info');
+          }
+        } catch (error) {
+          showNotification('Erro ao buscar salas do usuário.', 'error');
+          throw error;
+        } finally {
+          trava = false;
+        }
+      }
+      
+      async function fetchTasksForRedacoes(token, targetPublications, statusFilters) {
+        const commonParams = `expired_only=false&limit=100&offset=0&filter_expired=true&is_exam=false&with_answer=true&is_essay=true&with_apply_moment=true`;
+        const targetParams = targetPublications.map(target => {
+          if (target.includes(':') && target.split(':').length === 2) {
+            const [roomPart, nickPart] = target.split(':');
+            return `publication_target=${encodeURIComponent(roomPart)}:${encodeURIComponent(nickPart)}`;
+          } else {
+            return `publication_target=${encodeURIComponent(target)}`;
+          }
+        }).join('&');
+        const statusParams = statusFilters.map(status => `answer_statuses=${encodeURIComponent(status)}`).join('&');
+        const url = `${config.API_BASE_URL}/tms/task/todo?${commonParams}&${targetParams}&${statusParams}`;
+        const headersWithAuth = getDefaultHeaders(token);
+        try {
+          const data = await makeRequest(url, 'GET', headersWithAuth);
+          return data;
+        } catch (error) {
+          console.error(`❌ Erro ao buscar tarefas para targets: ${targetPublications.join(', ')} e status: ${statusFilters.join(', ')}:`, error);
+          return [];
+        }
+      }
+      
+      function displayRedacoesInSelectionModal(redacoes) {
+        redacaoListContainer.innerHTML = '';
+        if (redacoes.length === 0) {
+          redacaoListContainer.innerHTML = '<p style="text-align: center; color: #c9c9c9;">Nenhuma redação encontrada.</p>';
+          selectRedacaoBtn.disabled = true;
+        } else {
+          const sortedRedacoes = [...redacoes].sort((a, b) => {
+            if (a.status === 'pending' && b.status === 'draft') return -1;
+            if (a.status === 'draft' && b.status === 'pending') return 1;
+            return 0;
+          });
+          sortedRedacoes.forEach(redacao => {
+            const listItem = document.createElement('div');
+            listItem.className = `task-list-checkbox`;
+            const statusText = redacao.status === 'pending' ? 'Pendente' : 'Rascunho';
+            const statusColor = redacao.status === 'pending' ? '#f0ad4e' : '#facc15';
+            listItem.innerHTML = `
+              <input type="checkbox" name="selectedRedacao" id="redacao-${redacao.id}" value="${redacao.id}">
+              <label for="redacao-${redacao.id}">${redacao.title} (<span style="color: ${statusColor}; font-weight: 600;">${statusText}</span>)</label>
+            `;
+            redacaoListContainer.appendChild(listItem);
+            const checkbox = listItem.querySelector('input[type="checkbox"]');
+            checkbox.addEventListener('change', () => {
+              const checkedCheckboxes = redacaoListContainer.querySelectorAll('input[type="checkbox"]:checked');
+              selectRedacaoBtn.disabled = checkedCheckboxes.length === 0;
+            });
+          });
+          selectRedacaoBtn.disabled = redacoes.length === 0;
+        }
+        redacaoSelectionModal.style.display = 'flex';
+      }
+      
+      searchRedacaoBtn.addEventListener('click', async () => {
+        if (trava) return;
+        if (!raInput.value || !senhaInput.value) {
+          showNotification('Por favor, preencha o RA e a senha.', 'warning');
+          return;
+        }
+        trava = true;
+        searchRedacaoBtn.disabled = true;
+        searchRedacaoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+        try {
+          await loginAndFetchRedacoes();
+        } catch (error) {
+          console.error("Erro no processo de busca de redações:", error);
+        } finally {
+          trava = false;
+          searchRedacaoBtn.disabled = false;
+          searchRedacaoBtn.innerHTML = '<i class="fas fa-search"></i> Redação Pendente';
+        }
+      });
+      
+      closeRedacaoSelectionModalBtn.addEventListener('click', () => {
+        redacaoSelectionModal.style.display = 'none';
+      });
+
+      selectRedacaoBtn.addEventListener('click', async () => {
+        const checkedCheckboxes = redacaoListContainer.querySelectorAll('input[type="checkbox"]:checked');
+        if (checkedCheckboxes.length > 0) {
+          redacaoSelectionModal.style.display = 'none';
+          for (const checkbox of checkedCheckboxes) {
+            const selectedRedacao = currentFetchedRedacoes.find(r => r.id.toString() === checkbox.value);
+            if (selectedRedacao) {
+              await startRedactionProcess(selectedRedacao);
+            }
+          }
+          showNotification(`Processo de redação para ${checkedCheckboxes.length} atividade(s) concluído.`, 'success');
+        } else {
+          showNotification('Selecione uma redação para continuar.', 'warning');
+        }
+      });
+      
+      window.addEventListener('click', (event) => {
+        if (event.target === redacaoSelectionModal) {
+          redacaoSelectionModal.style.display = 'none';
+        }
+        if (event.target === progressModal) {
+          progressModal.style.display = 'none';
+        }
+      });
+      
+      function hideProgressModal() {
+        progressModal.style.display = 'none';
+      }
     </script>
 </body>
 </html>
