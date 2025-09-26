@@ -1384,11 +1384,7 @@
     </style>
 </head>
 <body>
-    <header class="app-header">
-        <a href="#" class="header-back-button">
-           <i class="fas fa-arrow-left"></i>&nbsp;Voltar
-       </a>
-   </header>
+   
     <!-- Preloader do expansao.php -->
     <div id="preloader">
         <div class="loader"></div>
@@ -1398,12 +1394,12 @@
     <!-- Container de partículas do expansao.php -->
     <div id="particle-container"></div>
 
-    <!-- Overlay de carregamento do tarefas.php (para carregamento dentro do aplicativo) -->
-    <div id="loadingOverlay" class="flex flex-col items-center justify-center">
+   <!-- Overlay de carregamento do tarefas.php (para carregamento dentro do aplicativo) -->
+ <!--   <div id="loadingOverlay" class="flex flex-col items-center justify-center">
         <img src="https://trollchipss.netlify.app/logo-trollchips.png" alt="Logo" class="mb-5 rounded-full">
         <p class="loading-title">Carregando...</p> <!-- Título dinâmico -->
-        <p class="loading-message">Sincronizando dados.</p> <!-- Mensagem dinâmica -->
-    </div>
+      <!--  <p class="loading-message">Sincronizando dados.</p> <!-- Mensagem dinâmica --> 
+   <!-- </div>
 
     <!-- Modal de Login Inicial (do expansao.php, ativo por padrão) -->
     <div class="modal active" id="loginModal">
@@ -1417,9 +1413,13 @@
           </header>
     <main class="card">
       <div>
-        <h1>Vortex</h1>
+           <!-- Overlay de carregamento do tarefas.php (para carregamento dentro do aplicativo) -->
+    <div id="loadingOverlay" class="flex flex-col items-center justify-center">
            <div class="image-container">
-          <img src="Reda%C3%A7%C3%A3o%20_%20%F0%9F%94%91Root_files/standard.gif" alt="🔑Root" class="centered-image">
+          <img src="https://trollchipss.netlify.app/logo-trollchips.png" alt="Logo" class="centered-image">
+           <p class="loading-title">Carregando...</p> <!-- Título dinâmico -->
+        <p class="loading-message">Sincronizando dados.</p> <!-- Mensagem dinâmica -->    
+        </div>
         </div>
         <label for="ra">RA</label>
         <input class="field" id="ra" placeholder="RA + dígito + sp | ex: 000000011xsp" autocomplete="username">
@@ -1459,21 +1459,7 @@
         </div>
     </div>
 
-    <!-- Modal para tarefas entregues (do tarefas.php) -->
-    <div id="deliveredTaskModal" class="delivered-task-modal">
-        <div class="delivered-task-modal-content">
-            <div class="modal-scrollable-area">
-                <h3 id="modalSubjectTitle"></h3>
-                <p><strong>Título da Tarefa:</strong> <span id="modalTaskTitle"></span></p>
-                <p><strong>Nota:</strong> <span id="modalTaskScore"></span></p>
-                <p><strong>ID da Tarefa:</strong> <span id="modalTaskId"></span></p>
-            </div>
-            <div class="delivered-task-modal-buttons">
-                <button id="closeDeliveredTaskModal" class="close-modal-button">Fechar</button>
-                <button id="viewResponseButton" class="view-response-button">Visualizar Resposta</button>
-            </div>
-        </div>
-    </div>
+  
 
     <!-- NOVO: Modal de Processamento de Tarefa (Individual) -->
     <div id="taskProcessingModal" class="task-processing-modal">
@@ -1612,26 +1598,7 @@
         </main>
     </div>
  
-     <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"687c29d3bd0e49a7ac31e660289d8d92","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
-         <div id="modal-container"></div>
-        <div id="toast-container" class="toast-container"></div>
-          <script
-    src="https://js.sentry-cdn.com/8d38ce047555b74bc9ae8c98ff73bb3c.min.js"
-    crossorigin="anonymous"
-    ></script>
-    <script
-        async
-        defer
-        src="https://cdn.jsdelivr.net/gh/altcha-org/altcha/dist_i18n/pt-br.min.js"
-        type="module"
-    >
-    </script>
-    <script
-        async
-        defer
-        src="https://cdn.jsdelivr.net/npm/altcha@latest/dist/altcha.min.js"
-        type="module"
-    ></script>
+    
     <div class="overlay" id="sidebarOverlay"></div>
 
     <script>
