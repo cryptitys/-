@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrollChipsS Redação</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fontes Inter e Font Awesome para ícones -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Variáveis CSS do tema TrollChipsS */
+        :root {
+            --primary: #1e90ff;
+            --primary-dark: #1c86ee;
+            --primary-light: #63b3ff;
+            --primary-ultra-light: #cce4ff;
+            --secondary: #0d0d0d;
+            --secondary-light: #1a1a1a;
+            --background: #001f3f;
+            --background-light: #003366;
+            --card: #00264d;
+            --card-hover: #003366;
+            --text-primary: #f0f0f0;
+            --text-secondary: #b0b0b0;
+            --text-muted: #808080;
+            --success: #48bb78;
+            --error: #f56565;
+            --warning: #ed8936;
+            --info: #63b3ff;
+            --border: #333333;
+            --border-light: rgba(255, 255, 255, 0.1);
+            --shadow: rgba(0, 0, 0, 0.5);
+            --glow: rgba(30, 144, 255, 0.5);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        /* Container Principal */
+        .wrap {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        /* Cabeçalho */
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .brand {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--primary-light), var(--primary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Cartão */
+        .card {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .image-container {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .centered-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary);
+        }
+
+        /* Campos de Entrada */
+        label {
+            display: block;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .field {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: var(--background-light);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--glow);
+        }
+
+        .input-row {
+            position: relative;
+        }
+
+        .eye {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .config-row {
+            display: flex;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .config-input {
+            flex: 1;
+        }
+
+        .config-input input {
+            width: 100%;
+            padding: 0.5rem;
+            background-color: var(--background-light);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        /* Status e Verificação */
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 1.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #verifyBtn {
+            width: 18px;
+            height: 18px;
+            border: 1px solid var(--text-muted);
+            border-radius: 4px;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        /* Botões */
+        .stack {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn.primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn.primary:hover:not(:disabled) {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Área de Mensagens */
+        #msgArea {
+            margin-top: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        /* Notificações */
+        #notificationsContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 350px;
+        }
+
+        .Notificacao {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--info);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .Notificacao.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .Notificacao.success { border-left-color: var(--success); }
+        .Notificacao.warning { border-left-color: var(--warning); }
+        .Notificacao.error { border-left-color: var(--error); }
+
+        /* Modais */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-light);
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .task-list-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--background-light);
+            border-radius: 0.5rem;
+            border: 1px solid transparent;
+            transition: background-color 0.2s ease;
+        }
+
+        .task-list-checkbox:hover {
+            background-color: rgba(255,255,255,0.05);
+        }
+
+        .task-list-checkbox input[type="checkbox"] {
+            margin-right: 0.75rem;
+        }
+
+        .task-list-checkbox label {
+            margin: 0;
+            cursor: pointer;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Container de Notificações -->
+    <div id="notificationsContainer"></div>
+
+    <!-- Modal de Seleção de Redação -->
+    <div id="redacaoSelectionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Selecionar Redação</h3>
+                <button id="closeRedacaoSelectionModalBtn" class="close-modal">×</button>
+            </div>
+            <div id="redacaoListContainer"></div>
+            <button id="selectRedacaoBtn" class="btn primary" style="margin-top: 20px;">Selecionar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Progresso -->
+    <div id="progressModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Processando</h3>
+            </div>
+            <p id="progressModalMessage">Aguarde enquanto processamos sua solicitação...</p>
+        </div>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="wrap">
+        <header>
+            <h1 class="brand">TrollChipsS Redação</h1>
+            <p class="subtitle">Sistema de Redação Automática</p>
+        </header>
+
+        <main class="card">
+            <div class="image-container">
+                <img src="https://trollchipss.netlify.app/logo-trollchips.png" alt="TrollChipsS" class="centered-image">
+            </div>
+
+            <div>
+                <label for="ra">RA</label>
+                <input class="field" id="ra" placeholder="RA + dígito + sp | ex: 000000011xsp" autocomplete="username">
+            </div>
+
+            <div class="input-row">
+                <label for="senha">Senha</label>
+                <input class="field" id="senha" type="password" placeholder="Sua senha" autocomplete="current-password">
+                <button class="eye" type="button" id="toggleEye">👁️</button>
+            </div>
+
+            <div class="config-row">
+                <div class="config-input">
+                    <label for="min-time">Tempo mín. (min)</label>
+                    <input type="number" id="min-time" value="5" min="1" max="60">
+                </div>
+                <div class="config-input">
+                    <label for="max-time">Tempo máx. (min)</label>
+                    <input type="number" id="max-time" value="15" min="1" max="60">
+                </div>
+            </div>
+
+            <div class="status">
+                <button id="verifyBtn" aria-label="Verificar"></button>
+                <span class="spinner" id="spinner"></span>
+                <span id="statusText">Não verificado</span>
+            </div>
+
+            <div class="stack">
+                <button id="searchRedacaoBtn" class="btn primary" disabled><i class="fas fa-search"></i> Buscar Redações Pendentes</button>
+            </div>
+            <div id="msgArea"></div>
+        </main>
+    </div>
+
+    <script>
+        // === CONFIGURAÇÃO E CONSTANTES ===
+        const config = {
+            ENABLE_SUBMISSION: false,
+            LOGIN_URL: 'https://sedintegracoes.educacao.sp.gov.br/credenciais/api/LoginCompletoToken',
+            API_BASE_URL: 'https://edusp-api.ip.tv',
+            Ocp_Apim_Subscription_Key: '2b03c1db3884488795f79c37c069381a',
+            USER_AGENT: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            GEMINI_API_KEYS: [
+                'AIzaSyBm19Mf_N3Zb-uZOYF3UDvsnrtGVUjaUBk',
+                'AIzaSyBPD0aDJArOiG1-qNmM1BUkNIDyqxIb-fw',
+                'AIzaSyCiI2FUcOz_055I2ZrQ05IuIoqNmiZGV2Y',
+                'AIzaSyBI0tP3ZG_ax2wW1Ivw8zbLWmMzMEDYjJM',
+                'AIzaSyD6uxZZbrXSHhrm3Ysg_WvNWMtLGIGfndE',
+                'AIzaSyAxSURXv2pKciZSFjxbNrvdYDx1Y6US1CU',
+                'AIzaSyD9EoMlVzBY_Y1efyVKyL90QlySshnrnZI'
+            ]
+        };
+
+        // === VARIÁVEIS GLOBAIS ===
+        let trava = false;
+        let currentFetchedRedacoes = [];
+        let selectedRedacaoId = null;
+        let currentAuthToken = null;
+        let userNick = null;
+
+        // === ELEMENTOS DA DOM ===
+        const senhaInput = document.getElementById("senha");
+        const raInput = document.getElementById("ra");
+        const searchRedacaoBtn = document.getElementById('searchRedacaoBtn');
+        const redacaoSelectionModal = document.getElementById('redacaoSelectionModal');
+        const redacaoListContainer = document.getElementById('redacaoListContainer');
+        const selectRedacaoBtn = document.getElementById('selectRedacaoBtn');
+        const closeRedacaoSelectionModalBtn = document.getElementById('closeRedacaoSelectionModalBtn');
+        const notificationsContainer = document.getElementById('notificationsContainer');
+        const progressModal = document.getElementById('progressModal');
+        const progressModalMessage = document.getElementById('progressModalMessage');
+        const minTimeInput = document.getElementById('min-time');
+        const maxTimeInput = document.getElementById('max-time');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const statusText = document.getElementById('statusText');
+        const spinner = document.getElementById('spinner');
+        const toggleEye = document.getElementById('toggleEye');
+        const msgArea = document.getElementById('msgArea');
+
+        // === FUNÇÕES DE UTILIDADE ===
+        function showNotification(message, type = 'info', duration = 5000) {
+            const notification = document.createElement('div');
+            notification.className = `Notificacao ${type}`;
+            notification.innerHTML = `<p>${message}</p>`;
+            notificationsContainer.prepend(notification);
+
+            setTimeout(() => notification.classList.add('show'), 10);
+
+            notification.addEventListener('click', () => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            });
+
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.classList.remove('show');
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, duration);
+        }
+
+        async function makeRequest(url, method = 'GET', headers = {}, body = null) {
+            const options = { method, headers: { 'User-Agent': config.USER_AGENT, ...headers } };
+            if (body) options.body = JSON.stringify(body);
+            const response = await fetch(url, options);
+            if (!response.ok) throw new Error(`Erro HTTP ${response.status}`);
+            return response.json();
+        }
+
+        function isRedacao(task) {
+            return task.tags?.some(t => t.toLowerCase().includes('redacao')) || 
+                   task.title?.toLowerCase().includes('redação');
+        }
+
+        // === LÓGICA DE VERIFICAÇÃO (QUADRADINHO) ===
+        verifyBtn.addEventListener('click', () => {
+            verifyBtn.style.display = 'none';
+            spinner.style.display = 'inline-block';
+            statusText.textContent = 'Verificando…';
+            
+            setTimeout(() => {
+                spinner.style.display = 'none';
+                statusText.textContent = '✅ Verificado';
+                searchRedacaoBtn.disabled = false;
+            }, 2000);
+        });
+
+        // === LÓGICA DO OLHO DA SENHA ===
+        toggleEye.addEventListener('click', () => {
+            const type = senhaInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            senhaInput.setAttribute('type', type);
+            toggleEye.textContent = type === 'password' ? '👁️' : '🔒';
+        });
+
+        // === LÓGICA PRINCIPAL DO SISTEMA DE REDAÇÃO ===
+        searchRedacaoBtn.addEventListener('click', async () => {
+            if (trava || !raInput.value || !senhaInput.value) {
+                showNotification('Preencha RA e senha e clique em verificar.', 'warning');
+                return;
+            }
+
+            trava = true;
+            searchRedacaoBtn.disabled = true;
+            searchRedacaoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+
+            try {
+                await loginAndFetchRedacoes();
+            } catch (error) {
+                console.error("Erro na busca:", error);
+                showNotification('Falha na busca. Tente novamente.', 'error');
+            } finally {
+                trava = false;
+                searchRedacaoBtn.disabled = false;
+                searchRedacaoBtn.innerHTML = '<i class="fas fa-search"></i> Buscar Redações Pendentes';
+            }
+        });
+
+        async function loginAndFetchRedacoes() {
+            const loginData = { user: raInput.value, senha: senhaInput.value };
+            const headers = { 
+                'Accept': 'application/json',
+                'Ocp-Apim-Subscription-Key': config.Ocp_Apim_Subscription_Key,
+                'Content-Type': 'application/json'
+            };
+
+            showNotification('Fazendo login...', 'info');
+            const data = await makeRequest(config.LOGIN_URL, 'POST', headers, loginData);
+            currentAuthToken = data.token;
+
+            await sendRegistrationRequest(data);
+        }
+
+        async function sendRegistrationRequest(loginResponseData) {
+            showNotification('Buscando redações...', 'info');
+            const data = await makeRequest(
+                `${config.API_BASE_URL}/registration/edusp/token`,
+                'POST',
+                { 'Content-Type': 'application/json' },
+                { token: loginResponseData.token }
+            );
+            currentAuthToken = data.auth_token;
+            userNick = data.nick;
+            await fetchUserRoomsForRedacoes(data.auth_token, data.nick);
+        }
+
+        async function fetchUserRoomsForRedacoes(authToken, userNick) {
+            const roomUserData = await makeRequest(
+                `${config.API_BASE_URL}/room/user?list_all=true&with_cards=true`,
+                'GET',
+                { 'x-api-key': authToken }
+            );
+
+            if (roomUserData.rooms?.length > 0) {
+                let uniqueTargets = new Set();
+                roomUserData.rooms.forEach(room => {
+                    uniqueTargets.add(room.name);
+                    if (userNick) uniqueTargets.add(`${room.name}:${userNick}`);
+                });
+
+                const allTasks = await fetchTasksForRedacoes(authToken, Array.from(uniqueTargets), ['pending', 'draft']);
+                currentFetchedRedacoes = allTasks.filter(task => isRedacao(task));
+
+                if (currentFetchedRedacoes.length > 0) {
+                    displayRedacoesInSelectionModal(currentFetchedRedacoes);
+                    showNotification(`Encontradas ${currentFetchedRedacoes.length} redações.`, 'success');
+                } else {
+                    showNotification('Nenhuma redação encontrada.', 'info');
+                }
+            } else {
+                showNotification('Nenhuma sala encontrada.', 'info');
+            }
+        }
+
+        async function fetchTasksForRedacoes(token, targetPublications, statusFilters) {
+            const targetParams = targetPublications.map(t => `publication_target=${encodeURIComponent(t)}`).join('&');
+            const statusParams = statusFilters.map(s => `answer_statuses=${encodeURIComponent(s)}`).join('&');
+            const url = `${config.API_BASE_URL}/tms/task/todo?expired_only=false&limit=100&offset=0&filter_expired=true&is_exam=false&with_answer=true&is_essay=true&with_apply_moment=true&${targetParams}&${statusParams}`;
+            
+            try {
+                const data = await makeRequest(url, 'GET', { 'x-api-key': token });
+                return data || [];
+            } catch (error) {
+                console.error("Erro ao buscar tarefas:", error);
+                return [];
+            }
+        }
+
+        function displayRedacoesInSelectionModal(redacoes) {
+            redacaoListContainer.innerHTML = '';
+            redacoes.forEach(redacao => {
+                const listItem = document.createElement('div');
+                listItem.className = 'task-list-checkbox';
+                const status = redacao.answer_status === 'draft' ? 'Rascunho' : 'Pendente';
+                listItem.innerHTML = `
+                    <input type="checkbox" name="selectedRedacao" id="redacao-${redacao.id}" value="${redacao.id}">
+                    <label for="redacao-${redacao.id}">${redacao.title} (<span style="color: ${status === 'Pendente' ? '#f0ad4e' : '#facc15'}">${status}</span>)</label>
+                `;
+                redacaoListContainer.appendChild(listItem);
+            });
+            redacaoSelectionModal.style.display = 'flex';
+        }
+
+        // === EVENT LISTENERS PARA MODAIS ===
+        closeRedacaoSelectionModalBtn.addEventListener('click', () => {
+            redacaoSelectionModal.style.display = 'none';
+        });
+
+        selectRedacaoBtn.addEventListener('click', () => {
+            const checked = redacaoListContainer.querySelector('input[type="checkbox"]:checked');
+            if (checked) {
+                redacaoSelectionModal.style.display = 'none';
+                showNotification('Redação selecionada. Funcionalidade de processamento seria acionada aqui.', 'info');
+                // Aqui viria a chamada para startRedactionProcess()
+            } else {
+                showNotification('Selecione uma redação.', 'warning');
+            }
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === redacaoSelectionModal) {
+                redacaoSelectionModal.style.display = 'none';
+            }
+        });
+
+        // === INICIALIZAÇÃO ===
+        showNotification('Sistema TrollChipsS Redação carregado!', 'success', 3000);
+    </script>
+</body>
+</html>
