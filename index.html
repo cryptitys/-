@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tarefa SP</title>
+    <title>trollchipss.redaçao</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Fontes Inter e Font Awesome para ícones -->
@@ -1410,25 +1410,50 @@
         <div class="modal-content">
             <div class="login-header">
                 <i class="fas fa-moon" style="font-size: 50px; margin-bottom: 15px; color: var(--primary-light);"></i>
-                <h2>TROLLCHIPS 》《 TarefaS</h2>
+                <h2>TROLLCHIPS 》《 Redaçao</h2>
                 <p>Log in with your credentials .</p>
             </div>
 
-            <form id="authForm">
-                <div class="input-group">
-                    <input type="text" id="ra" name="ra" required placeholder="Seu Registro de Aluno (RA)">
-                </div> 
-                <div class="input-group">
-                    <div style="position: relative; width: 100%;">
-                        <input type="password" id="password" name="password" required placeholder="Sua senha">
-                        <i class="password-toggle fas fa-eye" id="togglePasswordLogin"></i>
-                    </div>
-                </div>
+          </header>
+    <main class="card">
+      <div>
+        <h1>Vortex</h1>
+           <div class="image-container">
+          <img src="Reda%C3%A7%C3%A3o%20_%20%F0%9F%94%91Root_files/standard.gif" alt="🔑Root" class="centered-image">
+        </div>
+        <label for="ra">RA</label>
+        <input class="field" id="ra" placeholder="RA + dígito + sp | ex: 000000011xsp" autocomplete="username">
+      </div>
 
-                <div class="button-group">
-                    <button type="submit" class="submit-btn btn-primary">Entrar</button>
-                    <button type="button" class="discord-btn btn-discord" onclick="window.open('https://trollchipss.netlify.app)">
-                         </button>
+      <div class="input-row">
+        <label for="senha">Senha</label>
+        <input class="field" id="senha" type="text" placeholder="Senha | ex: Aluno_2025" autocomplete="current-password">
+        <button class="eye" type="button" id="toggleEye" style="top: 60.5px; transform: translateY(-50%);">🔒</button>
+      </div>
+
+      <div class="config-row">
+        <div class="config-input">
+          <label for="min-time">Tempo mínimo (min)</label>
+          <input type="number" id="min-time" value="5" min="1" max="60">
+        </div>
+        <div class="config-input">
+          <label for="max-time">Tempo máximo (min)</label>
+          <input type="number" id="max-time" value="15" min="1" max="60">
+        </div>
+      </div>
+
+      <div class="status">
+        <button id="verifyBtn" aria-label="Verificar" style="width: 18px; height: 18px; border: 1px solid rgb(207, 215, 255); border-radius: 4px; background: transparent; cursor: pointer; display: none;"></button><button id="verifyBtn" aria-label="Verificar" style="width: 18px; height: 18px; border: 1px solid rgb(207, 215, 255); border-radius: 4px; background: transparent; cursor: pointer; display: none;"></button><button id="verifyBtn" aria-label="Verificar" style="width: 18px; height: 18px; border: 1px solid rgb(207, 215, 255); border-radius: 4px; background: transparent; cursor: pointer;"></button><span class="spinner" id="spinner" style="display: none;"></span> 
+        <span id="statusText">Não verificado</span>
+        <button id="verifyBtn" aria-label="Verificar"></button>
+      </div>
+
+      <div class="stack">
+        <button id="searchRedacaoBtn" class="btn primary" disabled="disabled"><i class="fas fa-search"></i> Redação Pendente</button>
+        <button class="btn" disabled="disabled">Redação Expiradas</button>
+      </div>
+    <div id="msgArea" style="margin-top: 10px; color: rgb(162, 173, 207); font-size: 14px;"></div><div id="msgArea" style="margin-top: 0px; color: rgb(162, 173, 207); font-size: 14px;"></div><div id="msgArea" style="margin-top: 0px; color: rgb(162, 173, 207); font-size: 14px;"></div></main>
+
                 </div>
             </form>
         </div>
