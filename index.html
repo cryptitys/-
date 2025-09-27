@@ -651,6 +651,15 @@
 
         // === INICIALIZAÇÃO ===
         showNotification('Sistema TrollChipsS Redação carregado!', 'success', 3000);
+            document.addEventListener('keydown', function(e) {
+      if (e.key === 'F12' || e.key === 'f12') {
+        e.preventDefault(); // Impede a abertura das DevTools
+      }
+    });
+
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault(); // Impede a abertura do menu de contexto (botão direito)
+    });
     </script>
 </body>
 </html>
